@@ -1,0 +1,27 @@
+src/components/lesson-management/LessonOutcomes.tsx:        'Kazanım Kodu': outcome.code || '',
+src/components/lesson-management/LessonOutcomes.tsx:        'Kazanım Açıklaması': outcome.description || ''
+src/components/lesson-management/LessonOutcomes.tsx:      return String(a['Kazanım Kodu']).localeCompare(String(b['Kazanım Kodu']), undefined, { numeric: true });
+src/components/lesson-management/LessonOutcomes.tsx:    XLSX.utils.book_append_sheet(workbook, worksheet, "Kazanımlar");
+src/components/lesson-management/LessonOutcomes.tsx:    XLSX.writeFile(workbook, `${lessonId}_kazanimlar.xlsx`);
+src/components/lesson-management/LessonOutcomes.tsx:                          {unitOutcomes.length} Kazanım
+src/components/lesson-management/LessonQuestions.tsx:      alert("Lütfen en az bir kazanım seçin.");
+src/components/lesson-management/LessonQuestions.tsx:          Seçilen Kazanımlar:
+src/components/lesson-management/LessonQuestions.tsx:          3. Her soru mutlaka yukarıdaki kazanımlardan biriyle ilişkili olmalı.
+src/components/lesson-management/LessonQuestions.tsx:          - outcomeId alanına kazanımın KODUNU (örn: HB.1.1.1) yaz.
+src/components/lesson-management/LessonQuestions.tsx:        errorMessage = "Yapay zeka bu isteği güvenlik politikaları nedeniyle reddetti. Lütfen farklı kazanımlar deneyin.";
+src/components/lesson-management/LessonQuestions.tsx:                  Ünite ve Kazanım Seçimi
+src/components/lesson-management/LessonQuestions.tsx:                    <p className="text-sm text-neutral-500 italic">Önce ünite ve kazanım eklemelisiniz.</p>
+src/components/lesson-management/LessonQuestions.tsx:                <label className="block text-sm font-bold text-neutral-500 mb-2 uppercase tracking-wider">Kazanım Seçimi</label>
+src/components/lesson-management/LessonQuestions.tsx:                  <option value="">Kazanım Seçin</option>
+src/components/lesson-management/LessonQuestions.tsx:                      {outcomes.find(o => o.id === q.outcomeId)?.code || 'Kazanım'}
+src/components/activity-management/ActivityManagement.tsx:    description: 'Ünite kazanımlarına uygun, eğlenceli ve öğretici bir bilgi yarışı.',
+src/components/activity-management/ActivityManagement.tsx:    description: 'Ünite kazanımlarına uygun, eğlenceli ve öğretici bir bilgi yarışı.',
+src/components/admin/OutcomesPoolManager.tsx:          let outcomeText = String(row['Öğrenme İçerikleri'] || row['Öğrenme İçeriği'] || row['Kazanım'] || row['Kazanım Açıklaması'] || '').trim();
+src/components/admin/OutcomesPoolManager.tsx:          let outcomeCode = String(row['Kazanım Kodu'] || '').trim();
+src/components/admin/OutcomesPoolManager.tsx:               Bu sınıf düzeyi ve ders için henüz kazanım verisi eklenmemiştir.
+src/components/exam-management/ExamManagement.tsx:       alert("Lütfen testin hazırlanacağı en az 1 kazanım seçin.");
+src/components/exam-management/ExamCreate.tsx:        // Soru havuzunda soru olmayan kazanımlar seçilemesin
+src/components/exam-management/ExamCreate.tsx:    // Soru havuzunda soru olmayan kazanımlar seçilemesin
+src/components/exam-management/ExamCreate.tsx:      alert('Sınava eklenecek soru bulunamadı. Lütfen listeden en az bir kazanım seçerek soru adedini belirtin.'); 
+src/components/exam-management/ExamCreate.tsx:        alert('Seçtiğiniz kazanımlarda (veya belirtilen soru tiplerinde) hiç soru bulunamadı! Lütfen soru bankanızı kontrol edin.');
+src/components/exam-management/ExamCreate.tsx:              // Varsayılan olarak tüm ünite/kazanımları hesapla

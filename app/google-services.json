@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "761526041284",
+    "project_id": "gen-lang-client-0847504321",
+    "storage_bucket": "gen-lang-client-0847504321.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:761526041284:android:f38efa48a9ee046c9e6791",
+        "android_client_info": {
+          "package_name": "com.aistudio.websiteapp.coxy"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "761526041284-36narf1nqd2kntl6l3guo5d5sc6gvv2n.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDvNd9PeQuhUFSzXymKYF1RqvebTi_cNmI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "761526041284-36narf1nqd2kntl6l3guo5d5sc6gvv2n.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

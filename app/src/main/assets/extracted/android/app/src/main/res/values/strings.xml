@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Cihan Öğretmen</string>
+    <string name="title_activity_main">Cihan Öğretmen</string>
+    <string name="package_name">com.cihanogretmen.app</string>
+    <string name="custom_url_scheme">com.cihanogretmen.app</string>
+</resources>

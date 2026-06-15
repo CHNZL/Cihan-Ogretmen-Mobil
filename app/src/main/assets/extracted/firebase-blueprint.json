@@ -1,0 +1,635 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Stores user profile information from Google Login and school details.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Unique user ID" },
+        "displayName": { "type": "string", "description": "User's full name" },
+        "email": { "type": "string", "description": "User's email address" },
+        "photoURL": { "type": "string", "description": "User's profile picture URL" },
+        "city": { "type": "string", "description": "Teacher's city" },
+        "district": { "type": "string", "description": "Teacher's district" },
+        "schoolName": { "type": "string", "description": "Teacher's school name" },
+        "gradeLevel": { "type": "string", "description": "Teacher's grade level" },
+        "section": { "type": "string", "description": "Teacher's section/branch" },
+        "isProfileComplete": { "type": "boolean", "description": "Whether the teacher has completed their profile" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Account creation timestamp" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Student": {
+      "title": "Student",
+      "description": "Stores student information.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique student ID" },
+        "studentNo": { "type": "string", "description": "Student number" },
+        "name": { "type": "string", "description": "Student's full name" },
+        "gender": { "type": "string", "enum": ["Erkek", "Kız"], "description": "Student's gender" },
+        "birthDate": { "type": "string", "format": "date", "description": "Student's birth date" },
+        "parentEmail": { "type": "string", "format": "email", "description": "Parent's email address" },
+        "parentEmail2": { "type": "string", "format": "email", "description": "Second parent's email address" },
+        "teacherUid": { "type": "string", "description": "The UID of the teacher who owns this student record" },
+        "stars": { "type": "number", "description": "Total stars earned by the student" },
+        "starHistory": { 
+          "type": "array", 
+          "items": { 
+            "type": "object",
+            "properties": {
+              "category": { "type": "string" },
+              "description": { "type": "string" },
+              "amount": { "type": "number" },
+              "timestamp": { "type": "number" }
+            }
+          },
+          "description": "History of stars earned"
+        },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Record creation timestamp" }
+      },
+      "required": ["studentNo", "name", "gender", "teacherUid"]
+    },
+    "StudentActivity": {
+      "title": "Student Activity",
+      "description": "Activity history for a specific student.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "rewardCategory": { "type": "string" },
+        "rewardAmount": { "type": "number" },
+        "type": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "rewardCategory", "rewardAmount", "type"]
+    },
+    "City": {
+      "title": "City",
+      "description": "Stores city names.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Name of the city" }
+      },
+      "required": ["name"]
+    },
+    "District": {
+      "title": "District",
+      "description": "Stores district names for a city.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Name of the district" },
+        "cityName": { "type": "string", "description": "Name of the city this district belongs to" }
+      },
+      "required": ["name", "cityName"]
+    },
+    "School": {
+      "title": "School",
+      "description": "Stores school names for a district.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Name of the school" },
+        "cityName": { "type": "string", "description": "Name of the city" },
+        "districtName": { "type": "string", "description": "Name of the district" }
+      },
+      "required": ["name", "cityName", "districtName"]
+    },
+    "ScheduleConfig": {
+      "title": "Lesson Schedule Configuration",
+      "description": "Stores the configuration for the teacher's lesson schedule.",
+      "type": "object",
+      "properties": {
+        "days": { "type": "array", "items": { "type": "string" }, "description": "Days of the week with lessons" },
+        "lessonCount": { "type": "number", "description": "Number of daily lesson hours" },
+        "startTime": { "type": "string", "description": "Lesson start time (e.g., '08:30')" },
+        "recessDuration": { "type": "number", "description": "Duration of a recess in minutes" },
+        "lunchBreakDuration": { "type": "number", "description": "Duration of the lunch break in minutes" },
+        "lunchBreakAfterLesson": { "type": "number", "description": "After which lesson the lunch break occurs" },
+        "lessonDuration": { "type": "number", "description": "Duration of a single lesson in minutes" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last update timestamp" }
+      },
+      "required": ["days", "lessonCount", "startTime", "recessDuration", "lunchBreakDuration", "lessonDuration"]
+    },
+    "Subject": {
+      "title": "Subject",
+      "description": "Stores subject information like name and color.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique subject ID" },
+        "name": { "type": "string", "description": "Name of the subject (e.g., Matematik)" },
+        "color": { "type": "string", "description": "Background color for the subject (hex or tailwind class)" },
+        "teacherUid": { "type": "string", "description": "The UID of the teacher who owns this subject" }
+      },
+      "required": ["name", "color", "teacherUid"]
+    },
+    "ScheduleData": {
+      "title": "Lesson Schedule Data",
+      "description": "Stores the actual lessons assigned to each slot in the schedule.",
+      "type": "object",
+      "properties": {
+        "slots": { 
+          "type": "object", 
+          "description": "Map of day_lessonNumber to subjectId (e.g., 'Pazartesi_1': 'math_id')" 
+        },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Book": {
+      "title": "Book",
+      "description": "Stores book information for the library.",
+      "type": "object",
+      "properties": {
+        "registrationNo": { "type": "number", "description": "Unique registration number for the book" },
+        "name": { "type": "string", "description": "Book title" },
+        "author": { "type": "string", "description": "Book author" },
+        "pageCount": { "type": "number", "description": "Number of pages" },
+        "status": { "type": "string", "description": "Current status of the book (e.g. Rafta or Student Name)" },
+        "currentStudentId": { "type": "string", "description": "ID of the student currently reading the book" },
+        "currentStudentName": { "type": "string", "description": "Name of the student currently reading the book" },
+        "assignmentDate": { "type": "string", "format": "date-time", "description": "When the book was assigned" },
+        "isReadByAll": { "type": "boolean", "description": "Whether the book was marked as read by all students" },
+        "teacherUid": { "type": "string", "description": "The UID of the teacher who owns this book" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["registrationNo", "name", "teacherUid"]
+    },
+    "ReadingRecord": {
+      "title": "Reading Record",
+      "description": "A record of a book read by a student",
+      "type": "object",
+      "properties": {
+        "bookId": { "type": "string" },
+        "bookName": { "type": "string" },
+        "studentId": { "type": "string" },
+        "studentName": { "type": "string" },
+        "startDate": { "type": "string", "format": "date-time" },
+        "endDate": { "type": "string", "format": "date-time" },
+        "teacherUid": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["bookId", "bookName", "studentId", "studentName", "startDate", "endDate", "teacherUid"]
+    },
+    "ReadingEvaluation": {
+      "title": "Reading Evaluation",
+      "description": "Stores the evaluation scores of a student for a specific book.",
+      "type": "object",
+      "properties": {
+        "bookId": { "type": "string" },
+        "studentId": { "type": "string" },
+        "readingScore": { "type": "number" },
+        "tellingScore": { "type": "number" },
+        "writingScore": { "type": "number" },
+        "examScore": { "type": "number" },
+        "teacherUid": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["bookId", "studentId", "teacherUid"]
+    },
+    "SeatingConfig": {
+      "title": "Seating Configuration",
+      "description": "Stores the configuration for the classroom seating plan.",
+      "type": "object",
+      "properties": {
+        "groupCount": { "type": "number" },
+        "peoplePerRow": { "type": "number" },
+        "rowsPerGroup": { "type": "array", "items": { "type": "number" } },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["groupCount", "peoplePerRow", "rowsPerGroup"]
+    },
+    "SeatingPlan": {
+      "title": "Seating Plan Data",
+      "description": "Stores the actual student placements in the seating plan.",
+      "type": "object",
+      "properties": {
+        "plan": { "type": "object", "description": "Map of group_row_seat to studentId" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Tournament": {
+      "title": "Tournament",
+      "description": "Stores tournament information.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique tournament ID" },
+        "name": { "type": "string", "description": "Tournament name" },
+        "description": { "type": "string", "description": "Tournament description" },
+        "type": { "type": "string", "enum": ["Eleme", "Lig", "Grup", "Grup+Eleme"], "description": "Tournament mode" },
+        "matchType": { "type": "string", "enum": ["Tek Maç", "Çift Maç"], "description": "Match type" },
+        "fixtureType": { "type": "string", "enum": ["all", "round-by-round"], "description": "Fixture planning type" },
+        "winnerSelectionMethod": { "type": "string", "enum": ["winner", "score"], "description": "Method to determine match winner" },
+        "currentRound": { "type": "number", "description": "Current round number" },
+        "participants": { "type": "array", "items": { "type": "string" }, "description": "List of student IDs" },
+        "extraParticipants": { "type": "array", "items": { "type": "string" }, "description": "List of extra participant names" },
+        "status": { "type": "string", "enum": ["Devam Ediyor", "Tamamlandı"], "description": "Current status" },
+        "winnerName": { "type": "string", "description": "Name of the tournament winner" },
+        "teacherUid": { "type": "string", "description": "The UID of the teacher who owns this tournament" },
+        "pointsWin": { "type": "number", "description": "Points awarded for a win in League mode" },
+        "pointsDraw": { "type": "number", "description": "Points awarded for a draw in League mode" },
+        "pointsLoss": { "type": "number", "description": "Points awarded for a loss in League mode" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "type", "matchType", "fixtureType", "winnerSelectionMethod", "currentRound", "participants", "status", "teacherUid"]
+    },
+    "Match": {
+      "title": "Match",
+      "description": "Stores match information for a tournament.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "tournamentId": { "type": "string" },
+        "round": { "type": "number" },
+        "player1Id": { "type": "string" },
+        "player2Id": { "type": "string" },
+        "player1Name": { "type": "string" },
+        "player2Name": { "type": "string" },
+        "winnerId": { "type": "string" },
+        "score1": { "type": "number" },
+        "score2": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "completed"] },
+        "nextMatchId": { "type": "string" },
+        "matchCode": { "type": "string" },
+        "isDoubleMatch": { "type": "boolean" },
+        "pairCode": { "type": "string" },
+        "isTieBreaker": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["tournamentId", "round", "player1Id", "player2Id", "status"]
+    },
+    "LessonUnit": {
+      "title": "Lesson Unit",
+      "description": "Stores unit (theme) information for a lesson.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "lessonId": { "type": "string", "description": "The ID of the lesson (e.g., lesson-matematik)" },
+        "name": { "type": "string", "description": "Name of the unit" },
+        "order": { "type": "number", "description": "Display order of the unit" },
+        "teacherUid": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["lessonId", "name", "order", "teacherUid"]
+    },
+    "LessonOutcome": {
+      "title": "Lesson Outcome",
+      "description": "Stores learning outcomes (kazanımlar) for a lesson unit.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "unitId": { "type": "string" },
+        "lessonId": { "type": "string" },
+        "description": { "type": "string" },
+        "code": { "type": "string" },
+        "teacherUid": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["unitId", "lessonId", "description", "teacherUid"]
+    },
+    "LessonQuestion": {
+      "title": "Lesson Question",
+      "description": "Stores questions linked to lesson outcomes.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "lessonId": { "type": "string" },
+        "unitId": { "type": "string" },
+        "outcomeId": { "type": "string" },
+        "type": { "type": "string", "enum": ["multiple-choice", "true-false", "matching", "fill-in-the-blanks"] },
+        "text": { "type": "string" },
+        "options": { "type": "array", "items": { "type": "string" } },
+        "correctAnswer": { "type": "string" },
+        "pairs": { "type": "array", "items": { "type": "object", "properties": { "left": { "type": "string" }, "right": { "type": "string" } } } },
+        "teacherUid": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["lessonId", "unitId", "outcomeId", "type", "text", "teacherUid"]
+    },
+    "Announcement": {
+      "title": "Announcement",
+      "description": "System-wide announcements published by administrators.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "target": { "type": "string", "enum": ["all", "teachers", "parents"] },
+        "authorName": { "type": "string" },
+        "authorEmail": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "content", "target"]
+    },
+    "TeacherAnnouncement": {
+      "title": "Teacher Announcement",
+      "description": "Announcements created by teachers for their students and parents.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "targetAudience": { "type": "string", "enum": ["ALL", "SPECIFIC"] },
+        "targetStudentIds": { "type": "array", "items": { "type": "string" } },
+        "readBy": { "type": "object", "description": "Map of studentId to read timestamp" },
+        "hasPoll": { "type": "boolean", "description": "Whether the announcement has a poll" },
+        "pollOptions": { "type": "array", "items": { "type": "string" }, "description": "List of options for the poll" },
+        "pollVotes": { "type": "object", "description": "Map of studentId to selected option index" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "content", "targetAudience"]
+    },
+    "Presence": {
+      "title": "Presence",
+      "description": "Tracks user online status.",
+      "type": "object",
+      "properties": {
+        "lastActive": { "type": "string", "format": "date-time" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" }
+      },
+      "required": ["lastActive"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "User-specific notifications.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "announcementId": { "type": "string" },
+        "isRead": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "content", "isRead"]
+    },
+    "DailyStats": {
+      "title": "Daily Stats",
+      "description": "Tracks daily visitor counts.",
+      "type": "object",
+      "properties": {
+        "count": { "type": "number" }
+      },
+      "required": ["count"]
+    },
+    "Activity": {
+      "title": "Activity Category",
+      "description": "Stores general activity categories like 'Güzel Okuma Etkinliği'.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string", "enum": ["Türkçe", "Matematik", "Fen Bilimleri", "Sosyal Bilgiler", "Diğer"] },
+        "teacherUid": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "category", "teacherUid"]
+    },
+    "ActivityInstance": {
+      "title": "Activity Instance",
+      "description": "Stores a specific instance of an activity (e.g., 1. Güzel Okuma Yarışması).",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "activityId": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string", "enum": ["Metin", "Şiir"] },
+        "date": { "type": "string", "format": "date" },
+        "rewards": { 
+          "type": "object",
+          "properties": {
+            "first": { "type": "number" },
+            "second": { "type": "number" },
+            "third": { "type": "number" },
+            "fourth": { "type": "number" },
+            "fifth": { "type": "number" },
+            "others": { "type": "number" }
+          }
+        },
+        "juryIds": { "type": "array", "items": { "type": "string" }, "description": "List of student IDs or 'teacher'" },
+        "status": { "type": "string", "enum": ["Planlandı", "Tamamlandı"] },
+        "teacherUid": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["activityId", "name", "type", "date", "teacherUid", "status"]
+    },
+    "ActivityScore": {
+      "title": "Activity Score",
+      "description": "Stores scores for a student in a specific activity instance.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "instanceId": { "type": "string" },
+        "studentId": { "type": "string" },
+        "studentName": { "type": "string" },
+        "scores": { 
+          "type": "object",
+          "description": "Map of juryId to criteria scores (e.g., 'teacher': { 'criteria1': 10, ... })"
+        },
+        "totalScore": { "type": "number" },
+        "rank": { "type": "number" },
+        "rewardStars": { "type": "number" },
+        "teacherUid": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["instanceId", "studentId", "totalScore", "teacherUid"]
+    },
+    "EsZitAnlamWord": {
+      "title": "Eş and Zıt Anlam Word",
+      "description": "Stores word pairs for the Eş and Zıt Anlam activity.",
+      "type": "object",
+      "properties": {
+        "w": { "type": "string", "description": "Original word" },
+        "a": { "type": "string", "description": "Synonym or Antonym" },
+        "type": { "type": "string", "enum": ["es", "zit"], "description": "Whether it is a synonym (es) or antonym (zit)" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["w", "a", "type"]
+    },
+    "Exam": {
+      "title": "Exam",
+      "description": "Stores generated exams with selected questions.",
+      "type": "object",
+      "properties": {
+        "lessonId": { "type": "string" },
+        "title": { "type": "string" },
+        "totalQuestions": { "type": "number" },
+        "examConfig": { "type": "array", "items": { "type": "object" } },
+        "questions": { "type": "array", "items": { "type": "object" } },
+        "status": { "type": "string", "enum": ["published", "graded"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["lessonId", "title", "totalQuestions", "examConfig", "questions", "status"]
+    },
+    "ActivityCustomQuestion": {
+      "title": "Activity Custom Question",
+      "description": "Custom questions added by the teacher for specific activities.",
+      "type": "object",
+      "properties": {
+        "unitId": { "type": "string" },
+        "question": { "type": "string" },
+        "options": { "type": "array", "items": { "type": "string" } },
+        "answer": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["unitId", "question", "options", "answer"]
+    },
+    "ActivitySetting": {
+      "title": "Activity Setting",
+      "description": "Settings for activities, like deleted questions.",
+      "type": "object",
+      "properties": {
+        "deletedQuestions": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "ExamResult": {
+      "title": "Exam Result",
+      "description": "Result of an exam for a student.",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string" },
+        "score": { "type": "number" },
+        "answers": { "type": "array", "items": { "type": "boolean" } },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["studentId", "score"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile document"
+    },
+    "/users/{userId}/activities/{activityId}": {
+      "schema": "Activity",
+      "description": "Activity category definitions"
+    },
+    "/users/{userId}/activityInstances/{instanceId}": {
+      "schema": "ActivityInstance",
+      "description": "Specific activity instances"
+    },
+    "/users/{userId}/activityScores/{scoreId}": {
+      "schema": "ActivityScore",
+      "description": "Student scores for activity instances"
+    },
+    "/users/{userId}/esZitAnlamWords/{wordId}": {
+      "schema": "EsZitAnlamWord",
+      "description": "Custom word pairs for Es/Zit Anlam activity"
+    },
+    "/users/{userId}/fenBilimleriQuestions/{qId}": {
+      "schema": "ActivityCustomQuestion",
+      "description": "Custom questions for Fen Bilimleri"
+    },
+    "/users/{userId}/hayatBilgisiQuestions/{qId}": {
+      "schema": "ActivityCustomQuestion",
+      "description": "Custom questions for Hayat Bilgisi"
+    },
+    "/users/{userId}/matematikQuestions/{qId}": {
+      "schema": "ActivityCustomQuestion",
+      "description": "Custom questions for Matematik"
+    },
+    "/users/{userId}/activitySettings/{settingId}": {
+      "schema": "ActivitySetting",
+      "description": "General settings for activities"
+    },
+    "/users/{userId}/config/schedule": {
+      "schema": "ScheduleConfig",
+      "description": "Lesson schedule configuration document"
+    },
+    "/users/{userId}/config/scheduleData": {
+      "schema": "ScheduleData",
+      "description": "Actual lesson assignments"
+    },
+    "/users/{userId}/config/seating": {
+      "schema": "SeatingConfig",
+      "description": "Seating plan configuration"
+    },
+    "/users/{userId}/config/seatingPlan": {
+      "schema": "SeatingPlan",
+      "description": "Actual student placements in seating plan"
+    },
+    "/users/{userId}/books/{bookId}": {
+      "schema": "Book",
+      "description": "Book document"
+    },
+    "/users/{userId}/subjects/{subjectId}": {
+      "schema": "Subject",
+      "description": "Subject definitions"
+    },
+    "/users/{userId}/students/{studentId}": {
+      "schema": "Student",
+      "description": "Student record document"
+    },
+    "/users/{userId}/readingRecords/{recordId}": {
+      "schema": "ReadingRecord",
+      "description": "Reading history record"
+    },
+    "/users/{userId}/readingEvaluations/{evaluationId}": {
+      "schema": "ReadingEvaluation",
+      "description": "Reading evaluations for the user's students."
+    },
+    "/users/{userId}/students/{studentId}/activities/{activityId}": {
+      "schema": "StudentActivity",
+      "description": "Activity history for a specific student"
+    },
+    "/users/{userId}/tournaments/{tournamentId}": {
+      "schema": "Tournament",
+      "description": "Tournament document"
+    },
+    "/users/{userId}/tournaments/{tournamentId}/matches/{matchId}": {
+      "schema": "Match",
+      "description": "Match document"
+    },
+    "/users/{userId}/lessonUnits/{unitId}": {
+      "schema": "LessonUnit",
+      "description": "Lesson units"
+    },
+    "/users/{userId}/lessonOutcomes/{outcomeId}": {
+      "schema": "LessonOutcome",
+      "description": "Lesson outcomes"
+    },
+    "/users/{userId}/lessonQuestions/{questionId}": {
+      "schema": "LessonQuestion",
+      "description": "Lesson questions"
+    },
+    "/cities/{cityId}": {
+      "schema": "City",
+      "description": "City document"
+    },
+    "/districts/{districtId}": {
+      "schema": "District",
+      "description": "District document"
+    },
+    "/schools/{schoolId}": {
+      "schema": "School",
+      "description": "School document"
+    },
+    "/announcements/{announcementId}": {
+      "schema": "Announcement",
+      "description": "Global announcements"
+    },
+    "/presence/{userId}": {
+      "schema": "Presence",
+      "description": "User presence tracking"
+    },
+    "/users/{userId}/notifications/{notifId}": {
+      "schema": "Notification",
+      "description": "User notifications"
+    },
+    "/users/{userId}/announcements/{announcementId}": {
+      "schema": "TeacherAnnouncement",
+      "description": "Announcements from a teacher to their class"
+    },
+    "/users/{userId}/exams/{examId}": {
+      "schema": "Exam",
+      "description": "Teacher generated exams"
+    },
+    "/daily_stats/{date}": {
+      "schema": "DailyStats",
+      "description": "Daily visitor statistics"
+    },
+    "/users/{userId}/exams/{examId}/results/{resultId}": {
+      "schema": "ExamResult",
+      "description": "Student exam results"
+    }
+  }
+}
