@@ -16,9 +16,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.auth.UserData
+import com.example.ui.update.UpdateViewModel
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -33,6 +37,11 @@ fun TeacherDashboardScreen(
     var selectedRoute by remember { mutableStateOf("Anasayfa") }
 
     val firestoreRepository = remember { com.example.data.FirestoreRepository() }
+    val updateViewModel: UpdateViewModel = viewModel()
+    
+    val showStartupDialog by updateViewModel.showStartupDialog.collectAsState()
+    val updateMessage by updateViewModel.message.collectAsState()
+    val context = LocalContext.current
 
     // Sync selected route with web remote control state
     LaunchedEffect(selectedRoute) {
@@ -55,6 +64,37 @@ fun TeacherDashboardScreen(
         }
     }
 
+    if (showStartupDialog) {
+        AlertDialog(
+            onDismissRequest = { updateViewModel.dismissStartupDialog() },
+            title = { Text("Yeni Sürüm Mevcut!") },
+            text = { Text("Uygulamanın yeni bir sürümü yayınlandı. Şimdi güncellemek ister misiniz?") },
+            confirmButton = {
+                Button(onClick = { updateViewModel.startDownload(context) }) {
+                    Text("Evet, Güncelle")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { updateViewModel.dismissStartupDialog() }) {
+                    Text("Daha Sonra")
+                }
+            }
+        )
+    }
+
+    if (updateMessage != null) {
+        AlertDialog(
+            onDismissRequest = { updateViewModel.clearMessage() },
+            title = { Text("Güncelleme Durumu") },
+            text = { Text(updateMessage ?: "") },
+            confirmButton = {
+                Button(onClick = { updateViewModel.clearMessage() }) {
+                    Text("Tamam")
+                }
+            }
+        )
+    }
+
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
@@ -66,7 +106,8 @@ fun TeacherDashboardScreen(
                         selectedRoute = it
                         scope.launch { drawerState.close() }
                     },
-                    onSignOut = onSignOut
+                    onSignOut = onSignOut,
+                    updateViewModel = updateViewModel
                 )
             }
         }
@@ -128,14 +169,19 @@ fun TeacherDashboardScreen(
 fun TeacherDrawerContent(
     selectedRoute: String,
     onRouteSelected: (String) -> Unit,
-    onSignOut: () -> Unit
+    onSignOut: () -> Unit,
+    updateViewModel: UpdateViewModel
 ) {
+    val updateAvailable by updateViewModel.updateAvailable.collectAsState()
+    val isLoading by updateViewModel.isLoading.collectAsState()
+    val context = LocalContext.current
+
     LazyColumn(modifier = Modifier.padding(horizontal = 12.dp)) {
         item {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 20.dp, horizontal = 12.dp),
+                    .padding(top = 20.dp, bottom = 8.dp, start = 12.dp, end = 12.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -158,6 +204,78 @@ fun TeacherDrawerContent(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                }
+            }
+        }
+
+        // --- UPDATE SECTION (Minnak yazılarla sürüm bilgisi ve güncelleştirme butonu) ---
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Sürüm: ${com.example.BuildConfig.VERSION_NAME}",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                
+                if (isLoading) {
+                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                } else {
+                    Row(
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .clickable {
+                                if (updateAvailable) {
+                                    updateViewModel.startDownload(context)
+                                } else {
+                                    updateViewModel.checkForUpdates(silentCheckOnStartup = false)
+                                }
+                            }
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (updateAvailable) {
+                            Text(
+                                "Güncelle",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(end = 4.dp)
+                            )
+                            Box {
+                                Icon(
+                                    Icons.Default.Refresh,
+                                    contentDescription = "Güncelle",
+                                    modifier = Modifier.size(18.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Icon(
+                                    Icons.Default.Star,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(8.dp).align(Alignment.TopEnd),
+                                    tint = Color.Yellow
+                                )
+                            }
+                        } else {
+                            Text(
+                                "Kontrol Et",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(end = 4.dp)
+                            )
+                            Icon(
+                                Icons.Default.Refresh,
+                                contentDescription = "Güncellemeleri Kontrol Et",
+                                modifier = Modifier.size(18.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                 }
             }
             Divider(modifier = Modifier.padding(bottom = 8.dp))
