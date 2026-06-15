@@ -99,7 +99,7 @@ class UpdateViewModel : ViewModel() {
                         } else if (response.code == 404) {
                             withContext(Dispatchers.Main) {
                                 if (!silentCheckOnStartup) {
-                                    _message.value = "Güncelleme ayarı eksik: GitHub deposu bulunamadı ($GITHUB_REPO)."
+                                    _message.value = "Henüz yayınlanmış bir güncelleme (sürüm) bulunmuyor."
                                 }
                             }
                         } else {
