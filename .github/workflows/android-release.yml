@@ -47,6 +47,12 @@ jobs:
           
           echo "Generated version: $VERSION_NAME (Code: $VERSION_CODE)"
 
+      - name: Setup Keystore
+        run: |
+          if [ -f "debug.keystore.base64" ]; then
+            base64 -d debug.keystore.base64 > debug.keystore
+          fi
+
       - name: Build Debug APK
         run: |
           if [ -f "./gradlew" ]; then
