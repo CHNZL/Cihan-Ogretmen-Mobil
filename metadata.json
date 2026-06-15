@@ -1,5 +1,5 @@
 {
-  "name": "Mobil Uygulama",
+  "name": "Cihan Öğretmen",
   "description": "Web sitesi ile senkronize çalışan mobil uygulama mimarisi",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
