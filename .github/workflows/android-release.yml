@@ -68,15 +68,15 @@ jobs:
             echo "APK not found!"
             exit 1
           fi
-          mv "$APK_PATH" "sinif-yonetimi-guncel.apk"
-          echo "APK created and renamed: sinif-yonetimi-guncel.apk"
+          mv "$APK_PATH" "Cihan Öğretmen.apk"
+          echo "APK created and renamed: Cihan Öğretmen.apk"
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.versioning.outputs.tag_name }}
           name: Sürüm ${{ steps.versioning.outputs.tag_name }}
-          files: sinif-yonetimi-guncel.apk
+          files: "Cihan Öğretmen.apk"
           generate_release_notes: true
           draft: false
           prerelease: false

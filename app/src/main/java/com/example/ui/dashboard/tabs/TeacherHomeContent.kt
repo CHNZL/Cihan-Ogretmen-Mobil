@@ -50,6 +50,67 @@ fun TeacherHomeContent(
     val dateFormatter = SimpleDateFormat("dd MMMM EEEE", Locale("tr", "TR"))
     val dateStr = dateFormatter.format(calendar.time)
 
+    val todayFormatter = SimpleDateFormat("EEEE", Locale("tr", "TR"))
+    val currentDayName = todayFormatter.format(calendar.time).replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale("tr", "TR")) else it.toString() }
+
+    val teacherUid = userData.userId
+    val db = remember {
+        com.google.firebase.firestore.FirebaseFirestore.getInstance(
+            com.google.firebase.FirebaseApp.getInstance(),
+            "ai-studio-50d2114a-6844-4ea4-a54d-c3de2ef685ab"
+        )
+    }
+
+    var scheduleData by remember { mutableStateOf(com.example.ui.dashboard.tabs.ScheduleData()) }
+    var subjects by remember { mutableStateOf<List<com.example.ui.dashboard.tabs.Subject>>(emptyList()) }
+    var lessonCount by remember { mutableStateOf(6) }
+
+    DisposableEffect(teacherUid) {
+        val configRef = db.collection("users").document(teacherUid).collection("config").document("schedule")
+        val configListener = configRef.addSnapshotListener { snapshot, error ->
+            if (snapshot != null && snapshot.exists()) {
+                lessonCount = (snapshot.get("lessonCount") as? Long)?.toInt() ?: 6
+            }
+        }
+
+        val dataRef = db.collection("users").document(teacherUid).collection("config").document("scheduleData")
+        val dataListener = dataRef.addSnapshotListener { snapshot, error ->
+            if (snapshot != null && snapshot.exists()) {
+                val slotsRaw = snapshot.get("slots") as? Map<*, *>
+                val slots = slotsRaw?.entries?.associate { entry ->
+                    val value = entry.value
+                    val lessonId = if (value is Map<*, *>) {
+                        value["lessonId"]?.toString() ?: ""
+                    } else {
+                        value?.toString() ?: ""
+                    }
+                    entry.key.toString() to lessonId
+                } ?: emptyMap()
+                scheduleData = com.example.ui.dashboard.tabs.ScheduleData(slots)
+            } else {
+                scheduleData = com.example.ui.dashboard.tabs.ScheduleData()
+            }
+        }
+
+        val subjectsRef = db.collection("users").document(teacherUid).collection("subjects")
+        val subjectsListener = subjectsRef.addSnapshotListener { snapshot, error ->
+            if (snapshot != null) {
+                val subList = snapshot.documents.mapNotNull { doc ->
+                    val name = doc.getString("name") ?: ""
+                    val color = doc.getString("color") ?: "#3b82f6"
+                    com.example.ui.dashboard.tabs.Subject(doc.id, name, color, teacherUid)
+                }
+                subjects = subList
+            }
+        }
+
+        onDispose {
+            configListener.remove()
+            dataListener.remove()
+            subjectsListener.remove()
+        }
+    }
+
     val sinifYonetimiOptions = listOf(
         "Sınıf Listesi" to Icons.Default.Groups,
         "Ders Programı" to Icons.Default.CalendarToday,
@@ -211,25 +272,28 @@ fun TeacherHomeContent(
                         }
 
                         Spacer(modifier = Modifier.height(24.dp))
-                        // Daily Schedule Grid (2 rows x 3 columns)
-                        val lessons = listOf(
-                            "1. Ders" to "Hayat Bilgisi",
-                            "2. Ders" to "Hayat Bilgisi",
-                            "3. Ders" to "Matematik",
-                            "4. Ders" to "Türkçe",
-                            "5. Ders" to "Türkçe",
-                            "6. Ders" to "S. Etkinlik"
-                        )
+                        // Daily Schedule Grid
+                        val columnCount = 3
+                        val lessons = (1..lessonCount).map { lessonIndex ->
+                            val slotKey = com.example.ui.dashboard.tabs.getWebSlotKey(currentDayName, lessonIndex)
+                            val subjectId = scheduleData.slots[slotKey]
+                            val matchingSubject = subjects.find { it.id == subjectId || it.name == subjectId }
+                            val displaySubjectName = matchingSubject?.name ?: subjectId ?: "Boş"
+                            "$lessonIndex. Ders" to displaySubjectName
+                        }
+                        
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                                LessonBox(modifier = Modifier.weight(1f), title = lessons[0].first, lesson = lessons[0].second)
-                                LessonBox(modifier = Modifier.weight(1f), title = lessons[1].first, lesson = lessons[1].second)
-                                LessonBox(modifier = Modifier.weight(1f), title = lessons[2].first, lesson = lessons[2].second)
-                            }
-                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                                LessonBox(modifier = Modifier.weight(1f), title = lessons[3].first, lesson = lessons[3].second)
-                                LessonBox(modifier = Modifier.weight(1f), title = lessons[4].first, lesson = lessons[4].second)
-                                LessonBox(modifier = Modifier.weight(1f), title = lessons[5].first, lesson = lessons[5].second)
+                            for (rowIndex in 0 until (lessons.size + columnCount - 1) / columnCount) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                                    for (colIndex in 0 until columnCount) {
+                                        val index = rowIndex * columnCount + colIndex
+                                        if (index < lessons.size) {
+                                            LessonBox(modifier = Modifier.weight(1f), title = lessons[index].first, lesson = lessons[index].second)
+                                        } else {
+                                            Spacer(modifier = Modifier.weight(1f))
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
