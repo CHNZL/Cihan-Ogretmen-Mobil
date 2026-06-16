@@ -65,11 +65,7 @@ fun TeacherDashboardScreen(
     // Notification State
     var notifications by remember {
         mutableStateOf(
-            listOf(
-                Notification("1", "Sistem Güncellemesi", "Uygulamanın yeni sürümü yayında."),
-                Notification("2", "Yeni Öğrenci Eklendi", "Ahmet Yılmaz sınıf listesine eklendi."),
-                Notification("3", "Mesaj", "Veliden gelen yeni bir mesaj var.")
-            )
+            emptyList<Notification>()
         )
     }
 

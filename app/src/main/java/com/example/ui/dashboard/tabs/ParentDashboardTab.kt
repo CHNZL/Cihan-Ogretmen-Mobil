@@ -30,10 +30,7 @@ fun ParentDashboardTab(
 
     var notifications by remember {
         mutableStateOf(
-            listOf(
-                Notification("1", "Sınav Sonucu", "Deneme 3 sonucu sisteme girildi."),
-                Notification("2", "Ödev", "Matematik ödevi yarına teslim edilecek.")
-            )
+            emptyList<Notification>()
         )
     }
 

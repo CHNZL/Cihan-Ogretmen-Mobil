@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 @Composable
 fun MenuCategoryTab(
@@ -119,7 +120,10 @@ fun MenuCategoryTab(
                             fontWeight = FontWeight.Bold,
                             color = Color.White,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                            modifier = Modifier.padding(horizontal = 8.dp)
+                            modifier = Modifier.padding(horizontal = 8.dp),
+                            maxLines = 2,
+                            lineHeight = 20.sp,
+                            fontSize = 14.sp
                         )
                     }
                 }
