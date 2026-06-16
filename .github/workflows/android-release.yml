@@ -38,7 +38,7 @@ jobs:
       - name: Generate Version Info
         id: versioning
         run: |
-          VERSION_CODE=${{ github.run_number }}
+          VERSION_CODE=$(date +%s)
           VERSION_NAME="1.0.${{ github.run_number }}"
           
           echo "VERSION_CODE=$VERSION_CODE" >> $GITHUB_ENV

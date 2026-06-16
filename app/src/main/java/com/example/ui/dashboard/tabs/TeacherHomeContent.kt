@@ -23,6 +23,9 @@ import com.example.auth.UserData
 import com.example.ui.update.UpdateViewModel
 import java.util.Calendar
 
+import java.text.SimpleDateFormat
+import java.util.Locale
+
 @Composable
 fun TeacherHomeContent(
     userData: UserData,
@@ -43,7 +46,47 @@ fun TeacherHomeContent(
     }
     
     val userName = userData.username?.split(" ")?.firstOrNull() ?: "Öğretmen"
-    val dateStr = "10 Haziran Çarşamba" // Mocked date for demo
+    
+    val dateFormatter = SimpleDateFormat("dd MMMM EEEE", Locale("tr", "TR"))
+    val dateStr = dateFormatter.format(calendar.time)
+
+    val sinifYonetimiOptions = listOf(
+        "Sınıf Listesi" to Icons.Default.Groups,
+        "Ders Programı" to Icons.Default.CalendarToday,
+        "Oturma Planı" to Icons.Default.GridOn,
+        "Grup Oluşturucu" to Icons.Default.GroupAdd,
+        "Yıldızlar Sınıfı" to Icons.Default.AutoAwesome,
+        "Şanslı Öğrenci" to Icons.Default.Star,
+        "Zamanlayıcı" to Icons.Default.Timer,
+        "Duyurular" to Icons.Default.Campaign
+    )
+
+    val kitaplikYonetimiOptions = listOf(
+        "Yeni Kitap Ekle" to Icons.Default.Add,
+        "Kitaplık Listesi" to Icons.Default.LibraryBooks,
+        "Okuma Kayıtları" to Icons.Default.History,
+        "Okuma Değerlendirme" to Icons.Default.CheckCircle
+    )
+
+    val dersYonetimiOptions = listOf(
+        "Fen Bilimleri" to Icons.Default.Book,
+        "Hayat Bilgisi" to Icons.Default.Book,
+        "İngilizce" to Icons.Default.Book,
+        "Matematik" to Icons.Default.Book,
+        "Türkçe" to Icons.Default.Book,
+        "Ders Programı" to Icons.Default.CalendarToday,
+        "Zamanlayıcı" to Icons.Default.Timer
+    )
+
+    val turnuvaYonetimiOptions = listOf(
+        "Yeni Turnuva" to Icons.Default.Add,
+        "Turnuvalarım" to Icons.Default.EmojiEvents
+    )
+
+    var sinifYonetimiActions by remember { mutableStateOf(listOf(sinifYonetimiOptions[5], sinifYonetimiOptions[4])) }
+    var kitaplikYonetimiActions by remember { mutableStateOf(listOf(kitaplikYonetimiOptions[1], kitaplikYonetimiOptions[2])) }
+    var dersYonetimiActions by remember { mutableStateOf(listOf(dersYonetimiOptions[5], dersYonetimiOptions[6])) }
+    var turnuvaYonetimiActions by remember { mutableStateOf(listOf(turnuvaYonetimiOptions[1], turnuvaYonetimiOptions[0])) }
 
     LazyColumn(
         modifier = Modifier
@@ -55,122 +98,139 @@ fun TeacherHomeContent(
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                shape = RoundedCornerShape(16.dp)
+                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+                shape = RoundedCornerShape(24.dp)
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    // Update & Version Info
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = "Sürüm: ${com.example.BuildConfig.VERSION_NAME}",
-                            fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            brush = androidx.compose.ui.graphics.Brush.linearGradient(
+                                colors = listOf(
+                                    Color(0xFF3F51B5),
+                                    Color(0xFF5C6BC0),
+                                    Color(0xFF7986CB)
+                                )
+                            )
                         )
-                        
-                        if (isLoading) {
-                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                        } else {
-                            Row(
-                                modifier = Modifier
-                                    .clip(CircleShape)
-                                    .clickable {
-                                        if (updateAvailable) {
-                                            updateViewModel.startDownload(context)
-                                        } else {
-                                            updateViewModel.checkForUpdates(silentCheckOnStartup = false)
+                ) {
+                    Column(modifier = Modifier.padding(20.dp)) {
+                        // Update & Version Info
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "Sürüm: ${com.example.BuildConfig.VERSION_NAME}",
+                                fontSize = 11.sp,
+                                color = Color.White.copy(alpha = 0.8f)
+                            )
+                            
+                            if (isLoading) {
+                                CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)
+                            } else {
+                                Row(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(Color.White.copy(alpha = 0.2f))
+                                        .clickable {
+                                            if (updateAvailable) {
+                                                updateViewModel.startDownload(context)
+                                            } else {
+                                                updateViewModel.checkForUpdates(silentCheckOnStartup = false)
+                                            }
                                         }
-                                    }
-                                    .padding(horizontal = 8.dp, vertical = 2.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                if (updateAvailable) {
-                                    Text(
-                                        "Güncelle",
-                                        fontSize = 11.sp,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.padding(end = 4.dp)
-                                    )
-                                    Box {
-                                        Icon(
-                                            Icons.Default.Refresh,
-                                            contentDescription = "Güncelle",
-                                            modifier = Modifier.size(18.dp),
-                                            tint = MaterialTheme.colorScheme.primary
+                                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    if (updateAvailable) {
+                                        Text(
+                                            "Güncelle",
+                                            fontSize = 11.sp,
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(end = 4.dp)
+                                        )
+                                        Box {
+                                            Icon(
+                                                Icons.Default.Refresh,
+                                                contentDescription = "Güncelle",
+                                                modifier = Modifier.size(18.dp),
+                                                tint = Color.White
+                                            )
+                                            Icon(
+                                                Icons.Default.Star,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(8.dp).align(Alignment.TopEnd),
+                                                tint = Color.Yellow
+                                            )
+                                        }
+                                    } else {
+                                        Text(
+                                            "Güncel",
+                                            fontSize = 11.sp,
+                                            color = Color.White.copy(alpha = 0.9f),
+                                            modifier = Modifier.padding(end = 4.dp)
                                         )
                                         Icon(
-                                            Icons.Default.Star,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(8.dp).align(Alignment.TopEnd),
-                                            tint = Color.Yellow
+                                            Icons.Default.CheckCircle,
+                                            contentDescription = "Güncellemeleri Kontrol Et",
+                                            modifier = Modifier.size(14.dp),
+                                            tint = Color.White.copy(alpha = 0.9f)
                                         )
                                     }
-                                } else {
-                                    Text(
-                                        "Kontrol Et",
-                                        fontSize = 11.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.padding(end = 4.dp)
-                                    )
-                                    Icon(
-                                        Icons.Default.Refresh,
-                                        contentDescription = "Güncellemeleri Kontrol Et",
-                                        modifier = Modifier.size(18.dp),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
                                 }
                             }
                         }
-                    }
 
-                    Text(
-                        text = "$greeting, $userName",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = "Bugün $dateStr",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    @OptIn(ExperimentalLayoutApi::class)
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        InfoChip(icon = Icons.Default.School, text = "SÜLEYMAN SAMİ KEPENEK İLKOKULU")
-                        InfoChip(icon = Icons.Default.Groups, text = "3. Sınıf / D Şubesi")
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-                    // Daily Schedule Grid (2 rows x 3 columns)
-                    val lessons = listOf(
-                        "1. Ders" to "Hayat Bilgisi",
-                        "2. Ders" to "Hayat Bilgisi",
-                        "3. Ders" to "Matematik",
-                        "4. Ders" to "Türkçe",
-                        "5. Ders" to "Türkçe",
-                        "6. Ders" to "S. Etkinlik"
-                    )
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                            LessonBox(modifier = Modifier.weight(1f), title = lessons[0].first, lesson = lessons[0].second)
-                            LessonBox(modifier = Modifier.weight(1f), title = lessons[1].first, lesson = lessons[1].second)
-                            LessonBox(modifier = Modifier.weight(1f), title = lessons[2].first, lesson = lessons[2].second)
+                        Text(
+                            text = "$greeting, $userName 👋",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color.White
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Bugün $dateStr",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White.copy(alpha = 0.8f)
+                        )
+                        Spacer(modifier = Modifier.height(20.dp))
+                        
+                        @OptIn(ExperimentalLayoutApi::class)
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            InfoChip(icon = Icons.Default.School, text = "SÜLEYMAN SAMİ KEPENEK İLKOKULU")
+                            InfoChip(icon = Icons.Default.Groups, text = "3. Sınıf / D Şubesi")
                         }
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                            LessonBox(modifier = Modifier.weight(1f), title = lessons[3].first, lesson = lessons[3].second)
-                            LessonBox(modifier = Modifier.weight(1f), title = lessons[4].first, lesson = lessons[4].second)
-                            LessonBox(modifier = Modifier.weight(1f), title = lessons[5].first, lesson = lessons[5].second)
+
+                        Spacer(modifier = Modifier.height(24.dp))
+                        // Daily Schedule Grid (2 rows x 3 columns)
+                        val lessons = listOf(
+                            "1. Ders" to "Hayat Bilgisi",
+                            "2. Ders" to "Hayat Bilgisi",
+                            "3. Ders" to "Matematik",
+                            "4. Ders" to "Türkçe",
+                            "5. Ders" to "Türkçe",
+                            "6. Ders" to "S. Etkinlik"
+                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                                LessonBox(modifier = Modifier.weight(1f), title = lessons[0].first, lesson = lessons[0].second)
+                                LessonBox(modifier = Modifier.weight(1f), title = lessons[1].first, lesson = lessons[1].second)
+                                LessonBox(modifier = Modifier.weight(1f), title = lessons[2].first, lesson = lessons[2].second)
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                                LessonBox(modifier = Modifier.weight(1f), title = lessons[3].first, lesson = lessons[3].second)
+                                LessonBox(modifier = Modifier.weight(1f), title = lessons[4].first, lesson = lessons[4].second)
+                                LessonBox(modifier = Modifier.weight(1f), title = lessons[5].first, lesson = lessons[5].second)
+                            }
                         }
                     }
                 }
@@ -197,7 +257,7 @@ fun TeacherHomeContent(
                     value = "12",
                     label = "ERKEK",
                     iconTint = Color(0xFF2962FF),
-                    onClick = { onRouteSelected("Sınıf Listesi") }
+                    onClick = { onRouteSelected("Sınıf Listesi_Erkek") }
                 )
                 StatCard(
                     modifier = Modifier.weight(1f),
@@ -205,15 +265,15 @@ fun TeacherHomeContent(
                     value = "13",
                     label = "KIZ",
                     iconTint = Color(0xFFC51162),
-                    onClick = { onRouteSelected("Sınıf Listesi") } 
+                    onClick = { onRouteSelected("Sınıf Listesi_Kız") } 
                 )
                 StatCard(
                     modifier = Modifier.weight(1f),
                     icon = Icons.Default.Cake,
                     value = "1",
-                    label = "DO. GÜNÜ",
+                    label = "DOĞANLAR",
                     iconTint = Color(0xFFFFAB00),
-                    onClick = { onRouteSelected("Sınıf Listesi") } 
+                    onClick = { onRouteSelected("Sınıf Listesi_Doğum Günü") } 
                 )
             }
         }
@@ -226,47 +286,43 @@ fun TeacherHomeContent(
             ) {
                 // Sütun 1
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    MenuCategoryCard(
+                    MenuCategoryGroup(
                         title = "Sınıf Yönetimi",
-                        onClick = { onRouteSelected("Sınıf Yönetimi") },
-                        quickActions = listOf(
-                            "Şanslı Öğrenci" to Icons.Default.Star,
-                            "Yıldızlar Sınıfı" to Icons.Default.AutoAwesome
-                        ),
-                        onQuickActionClick = { actionTitle -> onRouteSelected(actionTitle) }
+                        onTitleClick = { onRouteSelected("Sınıf Yönetimi") },
+                        quickActions = sinifYonetimiActions,
+                        availableOptions = sinifYonetimiOptions,
+                        onQuickActionsChanged = { sinifYonetimiActions = it },
+                        onQuickActionClick = { onRouteSelected(it) }
                     )
                     
-                    MenuCategoryCard(
+                    MenuCategoryGroup(
                         title = "Kitaplık Yönetimi",
-                        onClick = { onRouteSelected("Kitaplık Yönetimi") },
-                        quickActions = listOf(
-                            "Kitaplık Listesi" to Icons.Default.LibraryBooks,
-                            "Okuma Kayıtları" to Icons.Default.History
-                        ),
-                        onQuickActionClick = { actionTitle -> onRouteSelected(actionTitle) }
+                        onTitleClick = { onRouteSelected("Kitaplık Yönetimi") },
+                        quickActions = kitaplikYonetimiActions,
+                        availableOptions = kitaplikYonetimiOptions,
+                        onQuickActionsChanged = { kitaplikYonetimiActions = it },
+                        onQuickActionClick = { onRouteSelected(it) }
                     )
                 }
 
                 // Sütun 2
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    MenuCategoryCard(
+                    MenuCategoryGroup(
                         title = "Ders Yönetimi",
-                        onClick = { onRouteSelected("Ders Yönetimi") },
-                        quickActions = listOf(
-                            "Ders Programı" to Icons.Default.CalendarToday,
-                            "Zamanlayıcı" to Icons.Default.Timer
-                        ),
-                        onQuickActionClick = { actionTitle -> onRouteSelected(actionTitle) }
+                        onTitleClick = { onRouteSelected("Ders Yönetimi") },
+                        quickActions = dersYonetimiActions,
+                        availableOptions = dersYonetimiOptions,
+                        onQuickActionsChanged = { dersYonetimiActions = it },
+                        onQuickActionClick = { onRouteSelected(it) }
                     )
 
-                    MenuCategoryCard(
+                    MenuCategoryGroup(
                         title = "Turnuva Yönetimi",
-                        onClick = { onRouteSelected("Turnuva Yönetimi") },
-                        quickActions = listOf(
-                            "Turnuvalarım" to Icons.Default.EmojiEvents,
-                            "Yeni Turnuva" to Icons.Default.Add
-                        ),
-                        onQuickActionClick = { actionTitle -> onRouteSelected(actionTitle) }
+                        onTitleClick = { onRouteSelected("Turnuva Yönetimi") },
+                        quickActions = turnuvaYonetimiActions,
+                        availableOptions = turnuvaYonetimiOptions,
+                        onQuickActionsChanged = { turnuvaYonetimiActions = it },
+                        onQuickActionClick = { onRouteSelected(it) }
                     )
                 }
             }
@@ -353,43 +409,93 @@ fun StatCard(
 }
 
 @Composable
-fun MenuCategoryCard(
+fun MenuCategoryGroup(
     title: String,
-    onClick: () -> Unit,
+    onTitleClick: () -> Unit,
     quickActions: List<Pair<String, ImageVector>>,
+    availableOptions: List<Pair<String, ImageVector>>,
+    onQuickActionsChanged: (List<Pair<String, ImageVector>>) -> Unit,
     onQuickActionClick: (String) -> Unit
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() },
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            
-            // Alt Menüler / Hızlı İşlemler
-            quickActions.forEachIndexed { index, action ->
+    var editingIndex by remember { mutableStateOf<Int?>(null) }
+
+    if (editingIndex != null) {
+        AlertDialog(
+            onDismissRequest = { editingIndex = null },
+            title = { Text("Hızlı İşlem Seç") },
+            text = {
+                LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                    items(availableOptions.size) { i ->
+                        val option = availableOptions[i]
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    val newActions = quickActions.toMutableList()
+                                    newActions[editingIndex!!] = option
+                                    onQuickActionsChanged(newActions)
+                                    editingIndex = null
+                                }
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(option.second, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text(option.first, style = MaterialTheme.typography.bodyLarge)
+                        }
+                        if (i < availableOptions.size - 1) {
+                            HorizontalDivider()
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { editingIndex = null }) {
+                    Text("İptal")
+                }
+            }
+        )
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Main Category Card
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(60.dp)
+                .clickable { onTitleClick() },
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+        }
+        
+        // Quick Actions
+        quickActions.forEachIndexed { index, action ->
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onQuickActionClick(action.first) },
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                shape = RoundedCornerShape(12.dp)
+            ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(MaterialTheme.colorScheme.surface)
-                        .clickable { onQuickActionClick(action.first) }
-                        .padding(8.dp),
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        action.second, 
-                        contentDescription = null, 
-                        modifier = Modifier.size(16.dp), 
+                        action.second,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
                         tint = MaterialTheme.colorScheme.primary
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -397,11 +503,20 @@ fun MenuCategoryCard(
                         text = action.first,
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f),
                         maxLines = 1
                     )
-                }
-                if (index < quickActions.size - 1) {
-                    Spacer(modifier = Modifier.height(6.dp))
+                    IconButton(
+                        onClick = { editingIndex = index },
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Settings,
+                            contentDescription = "Düzenle",
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         }

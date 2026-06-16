@@ -118,22 +118,47 @@ fun TeacherDashboardScreen(
         }
     ) { paddingValues ->
         Box(modifier = Modifier.padding(paddingValues)) {
-            when (selectedRoute) {
-                "Anasayfa" -> com.example.ui.dashboard.tabs.TeacherHomeContent(
+            when {
+                selectedRoute == "Anasayfa" -> com.example.ui.dashboard.tabs.TeacherHomeContent(
                     userData = userData,
                     updateViewModel = updateViewModel,
                     onRouteSelected = { route ->
                         selectedRoute = route
                     }
                 )
-                "Sınıf Listesi" -> com.example.ui.dashboard.tabs.StudentsTab(userData, PaddingValues(0.dp))
-                "Ders Programı" -> com.example.ui.dashboard.tabs.ScheduleTab(userData = userData)
-                "Oturma Planı" -> com.example.ui.dashboard.tabs.SeatingPlanTab(userData = userData)
-                "Grup Oluşturucu" -> com.example.ui.dashboard.tabs.GroupCreatorTab(userData = userData)
-                "Yıldızlar Sınıfı" -> com.example.ui.dashboard.tabs.StarsClassTab(userData = userData)
-                "Şanslı Öğrenci" -> com.example.ui.dashboard.tabs.LuckyStudentTab(userData = userData)
-                "Zamanlayıcı" -> com.example.ui.dashboard.tabs.TimerTab(userData = userData)
-                else -> Text("$selectedRoute Yapım Aşamasında...", modifier = Modifier.padding(16.dp))
+                selectedRoute.startsWith("Sınıf Listesi") -> {
+                    val filter = selectedRoute.substringAfter("_", "Tümü")
+                    com.example.ui.dashboard.tabs.StudentsTab(userData, PaddingValues(0.dp), filter)
+                }
+                selectedRoute == "Ders Programı" -> com.example.ui.dashboard.tabs.ScheduleTab(userData = userData)
+                selectedRoute == "Oturma Planı" -> com.example.ui.dashboard.tabs.SeatingPlanTab(userData = userData)
+                selectedRoute == "Grup Oluşturucu" -> com.example.ui.dashboard.tabs.GroupCreatorTab(userData = userData)
+                selectedRoute == "Yıldızlar Sınıfı" -> com.example.ui.dashboard.tabs.StarsClassTab(userData = userData)
+                selectedRoute == "Şanslı Öğrenci" -> com.example.ui.dashboard.tabs.LuckyStudentTab(userData = userData)
+                selectedRoute == "Zamanlayıcı" -> com.example.ui.dashboard.tabs.TimerTab(userData = userData)
+                selectedRoute == "Profil Ayarları" -> {
+                    com.example.ui.dashboard.tabs.ProfileSettingsTab(
+                        userData = userData,
+                        onBack = { selectedRoute = "Anasayfa" }
+                    )
+                }
+                selectedRoute in listOf("Sınıf Yönetimi", "Kitaplık Yönetimi", "Ders Yönetimi", "Turnuva Yönetimi") -> {
+                    com.example.ui.dashboard.tabs.MenuCategoryTab(
+                        categoryTitle = selectedRoute,
+                        onBack = { selectedRoute = "Anasayfa" },
+                        onRouteSelected = { route -> selectedRoute = route }
+                    )
+                }
+                else -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(
+                            text = "$selectedRoute Sayfası\nYapım Aşamasındadır",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                    }
+                }
             }
         }
     }

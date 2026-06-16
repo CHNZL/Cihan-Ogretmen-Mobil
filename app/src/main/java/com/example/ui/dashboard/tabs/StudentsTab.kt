@@ -22,11 +22,16 @@ import com.example.data.FirestoreRepository
 import com.example.data.Student
 import kotlinx.coroutines.launch
 
+import java.util.Calendar
+import java.text.SimpleDateFormat
+import java.util.Locale
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StudentsTab(
     userData: UserData,
-    paddingValues: PaddingValues
+    paddingValues: PaddingValues,
+    initialFilter: String = "Tümü"
 ) {
     val coroutineScope = rememberCoroutineScope()
     val firestoreRepository = remember { FirestoreRepository() }
@@ -34,6 +39,7 @@ fun StudentsTab(
     var students by remember { mutableStateOf<List<Student>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var searchQuery by remember { mutableStateOf("") }
+    var activeFilter by remember { mutableStateOf(initialFilter) }
     
     var showAddDialog by remember { mutableStateOf(false) }
     var studentToEdit by remember { mutableStateOf<Student?>(null) }
@@ -50,15 +56,34 @@ fun StudentsTab(
         refreshData()
     }
 
-    val filteredStudents = students.filter {
-        it.name.contains(searchQuery, ignoreCase = true) || 
-        it.surname.contains(searchQuery, ignoreCase = true) ||
-        it.studentNo.contains(searchQuery, ignoreCase = true)
+    val currentMonthFormat = SimpleDateFormat("MM", Locale("tr", "TR"))
+    val currentMonth = currentMonthFormat.format(Calendar.getInstance().time)
+
+    val filteredStudents = students.filter { student ->
+        val matchesSearch = student.name.contains(searchQuery, ignoreCase = true) || 
+                            student.surname.contains(searchQuery, ignoreCase = true) ||
+                            student.studentNo.contains(searchQuery, ignoreCase = true)
+                            
+        val matchesFilter = when (activeFilter) {
+            "Erkek" -> student.gender.equals("Erkek", ignoreCase = true)
+            "Kız" -> student.gender.equals("Kız", ignoreCase = true)
+            "Doğum Günü" -> {
+                val studentMonth = student.birthDate.split(".").getOrNull(1) ?: student.birthDate.split("/").getOrNull(1)
+                studentMonth == currentMonth
+            }
+            else -> true
+        }
+        
+        matchesSearch && matchesFilter
     }.sortedBy { it.studentNo.toIntOrNull() ?: Int.MAX_VALUE }
 
     val totalCount = students.size
     val maleCount = students.count { it.gender.equals("Erkek", ignoreCase = true) }
     val femaleCount = students.count { it.gender.equals("Kız", ignoreCase = true) }
+    val birthdayCount = students.count {
+        val studentMonth = it.birthDate.split(".").getOrNull(1) ?: it.birthDate.split("/").getOrNull(1)
+        studentMonth == currentMonth
+    }
 
     Column(
         modifier = Modifier
@@ -81,22 +106,47 @@ fun StudentsTab(
             Button(onClick = { showAddDialog = true }) {
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("Öğrenci Ekle")
+                Text("Ekle")
             }
         }
         
-        Row(
+        androidx.compose.foundation.lazy.LazyRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text("$totalCount Toplam Öğrenci", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-            Text("$maleCount Erkek", color = Color.Gray)
-            Text("$femaleCount Kız", color = Color.Gray)
+            item {
+                FilterChip(
+                    selected = activeFilter == "Tümü",
+                    onClick = { activeFilter = "Tümü" },
+                    label = { Text("$totalCount Tümü") }
+                )
+            }
+            item {
+                FilterChip(
+                    selected = activeFilter == "Erkek",
+                    onClick = { activeFilter = "Erkek" },
+                    label = { Text("$maleCount Erkek") }
+                )
+            }
+            item {
+                FilterChip(
+                    selected = activeFilter == "Kız",
+                    onClick = { activeFilter = "Kız" },
+                    label = { Text("$femaleCount Kız") }
+                )
+            }
+            item {
+                FilterChip(
+                    selected = activeFilter == "Doğum Günü",
+                    onClick = { activeFilter = "Doğum Günü" },
+                    label = { Text("$birthdayCount Bu Ay Doğanlar") }
+                )
+            }
         }
         
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
         
         OutlinedTextField(
             value = searchQuery,
