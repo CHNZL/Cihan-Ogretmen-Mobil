@@ -55,7 +55,7 @@ fun DashboardScreen(
                     }
                 }
             ) { paddingValues ->
-                ParentDashboardTab(userData = userData, paddingValues = paddingValues)
+                ParentDashboardTab(userData = userData, onSignOut = onSignOut, paddingValues = paddingValues)
             }
         }
         UserRole.MEMBER -> {

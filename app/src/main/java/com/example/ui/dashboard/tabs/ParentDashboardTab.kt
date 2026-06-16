@@ -9,6 +9,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.auth.UserData
 import com.example.data.ExamResult
+import com.example.ui.dashboard.Notification
+import com.example.ui.dashboard.components.SharedTopAppBar
 import com.patrykandpatrick.vico.compose.chart.Chart
 import com.patrykandpatrick.vico.compose.chart.line.lineChart
 import com.patrykandpatrick.vico.compose.axis.horizontal.rememberBottomAxis
@@ -20,10 +22,20 @@ import com.patrykandpatrick.vico.core.entry.ChartEntryModel
 @Composable
 fun ParentDashboardTab(
     userData: UserData,
+    onSignOut: () -> Unit,
     paddingValues: PaddingValues
 ) {
     var chartModel: ChartEntryModel? by remember { mutableStateOf(null) }
     var hasData by remember { mutableStateOf(false) }
+
+    var notifications by remember {
+        mutableStateOf(
+            listOf(
+                Notification("1", "Sınav Sonucu", "Deneme 3 sonucu sisteme girildi."),
+                Notification("2", "Ödev", "Matematik ödevi yarına teslim edilecek.")
+            )
+        )
+    }
 
     // Fake data for presentation
     val fakeExamResults = listOf(
@@ -42,7 +54,15 @@ fun ParentDashboardTab(
             .fillMaxSize()
             .padding(paddingValues)
     ) {
-        TopAppBar(title = { Text("Veli Paneli") })
+        SharedTopAppBar(
+            title = "Veli Paneli",
+            userData = userData,
+            onBackClick = null,
+            onSignOut = onSignOut,
+            onProfileSettingsClick = {},
+            notifications = notifications,
+            onNotificationsChanged = { notifications = it }
+        )
         
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
