@@ -32,7 +32,28 @@ fun TeacherDashboardScreen(
     onSignOut: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var selectedRoute by remember { mutableStateOf("Anasayfa") }
+    var routeStack by remember { mutableStateOf(listOf("Anasayfa")) }
+    val selectedRoute = routeStack.last()
+
+    val onNavigate = { newRoute: String ->
+        if (newRoute == "Anasayfa") {
+            routeStack = listOf("Anasayfa")
+        } else {
+            routeStack = routeStack + newRoute
+        }
+    }
+
+    val goBack = {
+        if (routeStack.size > 1) {
+            routeStack = routeStack.dropLast(1)
+        }
+    }
+
+    if (routeStack.size > 1) {
+        androidx.activity.compose.BackHandler {
+            goBack()
+        }
+    }
 
     val firestoreRepository = remember { com.example.data.FirestoreRepository() }
     val updateViewModel: UpdateViewModel = viewModel()
@@ -107,11 +128,12 @@ fun TeacherDashboardScreen(
     Scaffold(
         topBar = {
             SharedTopAppBar(
-                title = selectedRoute,
+                title = selectedRoute.substringBefore("_"),
                 userData = userData,
-                onBackClick = if (selectedRoute != "Anasayfa") { { selectedRoute = "Anasayfa" } } else null,
+                onBackClick = if (routeStack.size > 1) { { goBack() } } else null,
+                onHomeClick = if (routeStack.size > 1) { { onNavigate("Anasayfa") } } else null,
                 onSignOut = onSignOut,
-                onProfileSettingsClick = { selectedRoute = "Profil Ayarları" },
+                onProfileSettingsClick = { onNavigate("Profil Ayarları") },
                 notifications = notifications,
                 onNotificationsChanged = { notifications = it }
             )
@@ -123,7 +145,7 @@ fun TeacherDashboardScreen(
                     userData = userData,
                     updateViewModel = updateViewModel,
                     onRouteSelected = { route ->
-                        selectedRoute = route
+                        onNavigate(route)
                     }
                 )
                 selectedRoute.startsWith("Sınıf Listesi") -> {
@@ -139,20 +161,20 @@ fun TeacherDashboardScreen(
                 selectedRoute == "Profil Ayarları" -> {
                     com.example.ui.dashboard.tabs.ProfileSettingsTab(
                         userData = userData,
-                        onBack = { selectedRoute = "Anasayfa" }
+                        onBack = { goBack() }
                     )
                 }
                 selectedRoute in listOf("Sınıf Yönetimi", "Kitaplık Yönetimi", "Ders Yönetimi", "Turnuva Yönetimi") -> {
                     com.example.ui.dashboard.tabs.MenuCategoryTab(
                         categoryTitle = selectedRoute,
-                        onBack = { selectedRoute = "Anasayfa" },
-                        onRouteSelected = { route -> selectedRoute = route }
+                        onBack = { goBack() },
+                        onRouteSelected = { route -> onNavigate(route) }
                     )
                 }
                 else -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text(
-                            text = "$selectedRoute Sayfası\nYapım Aşamasındadır",
+                            text = "${selectedRoute.substringBefore("_")} Sayfası\nYapım Aşamasındadır",
                             style = MaterialTheme.typography.titleLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center

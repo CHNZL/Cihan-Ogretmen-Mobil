@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -29,6 +30,7 @@ fun SharedTopAppBar(
     title: String,
     userData: UserData,
     onBackClick: (() -> Unit)? = null,
+    onHomeClick: (() -> Unit)? = null,
     onSignOut: () -> Unit,
     onProfileSettingsClick: () -> Unit,
     notifications: List<Notification>,
@@ -108,6 +110,11 @@ fun SharedTopAppBar(
             }
         },
         actions = {
+            if (onHomeClick != null) {
+                IconButton(onClick = onHomeClick) {
+                    Icon(Icons.Default.Home, contentDescription = "Anasayfa")
+                }
+            }
             Box(modifier = Modifier.wrapContentSize(Alignment.TopEnd)) {
                 IconButton(onClick = { showNotificationMenu = !showNotificationMenu }) {
                     BadgedBox(
