@@ -16,6 +16,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.auth.UserData
 import com.example.data.FirestoreRepository
@@ -42,6 +43,7 @@ fun StudentsTab(
     var activeFilter by remember { mutableStateOf(initialFilter) }
     
     var showAddDialog by remember { mutableStateOf(false) }
+    var studentToView by remember { mutableStateOf<Student?>(null) }
     var studentToEdit by remember { mutableStateOf<Student?>(null) }
 
     fun refreshData() {
@@ -90,59 +92,72 @@ fun StudentsTab(
             .fillMaxSize()
             .padding(paddingValues)
     ) {
-        // Build Top Bar manually without Scaffold
+        Spacer(modifier = Modifier.height(16.dp))
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Icon(Icons.Default.List, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-            Spacer(modifier = Modifier.width(8.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text("Sınıf Listesi", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Text("Öğrenci listenizi buradan yönetebilirsiniz", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Button(
+                onClick = { activeFilter = "Tümü" },
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (activeFilter == "Tümü") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = if (activeFilter == "Tümü") MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                ),
+                contentPadding = PaddingValues(0.dp),
+                shape = MaterialTheme.shapes.small
+            ) {
+                Text("Tümü\n$totalCount", style = MaterialTheme.typography.labelSmall, textAlign = androidx.compose.ui.text.style.TextAlign.Center, lineHeight = 12.sp)
             }
-            Button(onClick = { showAddDialog = true }) {
-                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Ekle")
+            Button(
+                onClick = { activeFilter = "Erkek" },
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (activeFilter == "Erkek") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = if (activeFilter == "Erkek") MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                ),
+                contentPadding = PaddingValues(0.dp),
+                shape = MaterialTheme.shapes.small
+            ) {
+                Text("Erkek\n$maleCount", style = MaterialTheme.typography.labelSmall, textAlign = androidx.compose.ui.text.style.TextAlign.Center, lineHeight = 12.sp)
             }
-        }
-        
-        androidx.compose.foundation.lazy.LazyRow(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            item {
-                FilterChip(
-                    selected = activeFilter == "Tümü",
-                    onClick = { activeFilter = "Tümü" },
-                    label = { Text("$totalCount Tümü") }
-                )
+            Button(
+                onClick = { activeFilter = "Kız" },
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (activeFilter == "Kız") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = if (activeFilter == "Kız") MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                ),
+                contentPadding = PaddingValues(0.dp),
+                shape = MaterialTheme.shapes.small
+            ) {
+                Text("Kız\n$femaleCount", style = MaterialTheme.typography.labelSmall, textAlign = androidx.compose.ui.text.style.TextAlign.Center, lineHeight = 12.sp)
             }
-            item {
-                FilterChip(
-                    selected = activeFilter == "Erkek",
-                    onClick = { activeFilter = "Erkek" },
-                    label = { Text("$maleCount Erkek") }
-                )
+            Button(
+                onClick = { activeFilter = "Doğum Günü" },
+                modifier = Modifier.weight(1.2f),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (activeFilter == "Doğum Günü") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = if (activeFilter == "Doğum Günü") MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                ),
+                contentPadding = PaddingValues(0.dp),
+                shape = MaterialTheme.shapes.small
+            ) {
+                Text("Doğum\n$birthdayCount", style = MaterialTheme.typography.labelSmall, textAlign = androidx.compose.ui.text.style.TextAlign.Center, lineHeight = 12.sp)
             }
-            item {
-                FilterChip(
-                    selected = activeFilter == "Kız",
-                    onClick = { activeFilter = "Kız" },
-                    label = { Text("$femaleCount Kız") }
-                )
-            }
-            item {
-                FilterChip(
-                    selected = activeFilter == "Doğum Günü",
-                    onClick = { activeFilter = "Doğum Günü" },
-                    label = { Text("$birthdayCount Bu Ay Doğanlar") }
-                )
+            Button(
+                onClick = { showAddDialog = true },
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                contentPadding = PaddingValues(0.dp),
+                shape = MaterialTheme.shapes.small
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Text("Ekle", style = MaterialTheme.typography.labelSmall)
+                }
             }
         }
         
@@ -306,12 +321,12 @@ fun StudentsTab(
         } else {
             LazyColumn(
                 contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(filteredStudents) { student ->
                     StudentItem(
                         student = student,
-                        onClick = { studentToEdit = student }
+                        onClick = { studentToView = student }
                     )
                 }
             }
@@ -327,6 +342,24 @@ fun StudentsTab(
                     val studentWithTeacher = newStudent.copy(teacherUid = userData.teacherUid)
                     firestoreRepository.addStudent(userData.teacherUid, studentWithTeacher)
                     showAddDialog = false
+                    refreshData()
+                }
+            }
+        )
+    }
+
+    if (studentToView != null) {
+        StudentDetailsDialog(
+            student = studentToView!!,
+            onDismiss = { studentToView = null },
+            onEdit = { 
+                studentToEdit = studentToView
+                studentToView = null 
+            },
+            onDelete = { studentId ->
+                coroutineScope.launch {
+                    firestoreRepository.deleteStudent(userData.teacherUid, studentId)
+                    studentToView = null
                     refreshData()
                 }
             }
@@ -358,62 +391,133 @@ fun StudentsTab(
 
 @Composable
 fun StudentItem(student: Student, onClick: () -> Unit) {
+    val bgColor = if (student.gender.equals("Kız", ignoreCase = true)) {
+        Color(0xFFFFEBEE)
+    } else if (student.gender.equals("Erkek", ignoreCase = true)) {
+        Color(0xFFE3F2FD)
+    } else {
+        MaterialTheme.colorScheme.surfaceVariant
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() },
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        colors = CardDefaults.cardColors(containerColor = bgColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        shape = MaterialTheme.shapes.small
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = student.studentNo,
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.width(40.dp)
-                )
-                
-                Column(modifier = Modifier.weight(1f)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = student.studentNo,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.width(48.dp)
+            )
+            Text(
+                text = "${student.name} ${student.surname}",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+fun StudentDetailsDialog(
+    student: Student,
+    onDismiss: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: (String) -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            shape = MaterialTheme.shapes.large,
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(modifier = Modifier.padding(24.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(
-                        text = "${student.name} ${student.surname}".uppercase(),
-                        style = MaterialTheme.typography.titleMedium,
+                        text = "Öğrenci Bilgileri",
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = student.gender.ifEmpty { "-" },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (student.gender.equals("Kız", true)) Color(0xFFC51162) else Color(0xFF2962FF)
-                    )
+                    IconButton(onClick = onDismiss, modifier = Modifier.size(24.dp)) {
+                        Icon(Icons.Default.Close, contentDescription = "Kapat")
+                    }
                 }
-                
-                Icon(
-                    imageVector = Icons.Default.ChevronRight,
-                    contentDescription = "Düzenle",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            
-            Divider(modifier = Modifier.padding(vertical = 12.dp))
-            
-            Row(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("Doğum Tarihi", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-                    Text(student.birthDate.ifEmpty { "-" }, style = MaterialTheme.typography.bodyMedium)
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Öğrenci No", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                        Text(student.studentNo, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Cinsiyet", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                        Text(student.gender.ifEmpty { "-" }, style = MaterialTheme.typography.bodyLarge)
+                    }
                 }
-                Column(modifier = Modifier.weight(1.5f)) {
-                    Text("Veli E-postası", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-                    Text(student.parentEmail.ifEmpty { "-" }, style = MaterialTheme.typography.bodyMedium)
-                }
-            }
-            if (student.parentEmail2.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Column(modifier = Modifier.fillMaxWidth()) {
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text("Adı Soyadı", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                Text("${student.name} ${student.surname}", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text("Doğum Tarihi", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                Text(student.birthDate.ifEmpty { "-" }, style = MaterialTheme.typography.bodyLarge)
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text("Veli E-postası", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                Text(student.parentEmail.ifEmpty { "-" }, style = MaterialTheme.typography.bodyLarge)
+
+                if (student.parentEmail2.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(12.dp))
                     Text("Veli E-postası 2", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-                    Text(student.parentEmail2, style = MaterialTheme.typography.bodyMedium)
+                    Text(student.parentEmail2, style = MaterialTheme.typography.bodyLarge)
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(
+                        onClick = { onDelete(student.id) },
+                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Sil")
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Button(onClick = onEdit) {
+                        Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Düzenle")
+                    }
                 }
             }
         }
