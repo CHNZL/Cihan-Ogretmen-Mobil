@@ -324,7 +324,7 @@ fun StarsClassTab(userData: com.example.auth.UserData) {
                 LazyVerticalGrid(
                     columns = GridCells.Adaptive(minSize = 250.dp),
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
                     modifier = Modifier.fillMaxSize()
                 ) {
                     items(filteredList, key = { it.id }) { s ->
@@ -885,7 +885,7 @@ fun StudentStarCard(
     onAddStarClick: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth().height(70.dp),
+        modifier = Modifier.fillMaxWidth().height(64.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         border = BorderStroke(1.dp, Color(0xFFF1F5F9)),
