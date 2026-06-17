@@ -79,6 +79,9 @@ fun GroupCreatorTab(
     // Loaded / Shared Groups structure (List of Pair: Group Name, List of Students)
     var activeGroups by remember { mutableStateOf<List<Pair<String, List<Student>>>>(emptyList()) }
 
+    // Internal state variables
+    var isZoomedIn by remember { mutableStateOf(false) }
+
     // Load initial students & saved state
     LaunchedEffect(userData.teacherUid) {
         isLoading = true
@@ -192,7 +195,7 @@ fun GroupCreatorTab(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF8FAFC)) // Clean Slate slate-50
+            .background(MaterialTheme.colorScheme.background)
             .padding(16.dp)
     ) {
         // --- TOP HEADER SECTION ---
@@ -200,7 +203,7 @@ fun GroupCreatorTab(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
             shape = RoundedCornerShape(16.dp)
         ) {
@@ -209,40 +212,23 @@ fun GroupCreatorTab(
                     .fillMaxWidth()
                     .padding(16.dp)
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (isGroupingCreated) {
+                if (isGroupingCreated) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         IconButton(
                             onClick = { isGroupingCreated = false },
                             modifier = Modifier.padding(end = 4.dp)
                         ) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Geri Git", tint = Color(0xFF64748B))
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Geri Git", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                    } else {
-                        Icon(Icons.Default.GroupAdd, contentDescription = null, tint = Color(0xFF14B8A6), modifier = Modifier.size(28.dp))
-                        Spacer(modifier = Modifier.width(10.dp))
+                        Text("Gruplar", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                     }
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "GRUP OLUŞTURUCU",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF0F172A),
-                            fontSize = 18.sp
-                        )
-                        Text(
-                            text = "Sınıfınızı hızlıca ve kolayca gruplara ayırın.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color(0xFF64748B)
-                        )
-                    }
+                    Spacer(modifier = Modifier.height(12.dp))
                 }
 
                 // Header buttons row underneath (highly responsive)
-                Spacer(modifier = Modifier.height(12.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -606,18 +592,19 @@ fun GroupCreatorTab(
             if (!manualModeActive) {
                 // AUTOMATIC GENERATION RESULT VIEW (Grid columns) - properly weights in layout tree
                 Column(modifier = Modifier.fillMaxWidth().weight(1f)) {
-                    // Reshuffle action Bar
+                    // Reshuffle action Bar & Zoom Button
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(bottom = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Button(
                             onClick = { handleGenerateGroups() },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color(0xFF475569)),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surface, contentColor = MaterialTheme.colorScheme.onSurface),
                             elevation = ButtonDefaults.buttonElevation(defaultElevation = 1.dp),
-                            border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                             shape = RoundedCornerShape(8.dp),
                             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
                         ) {
@@ -625,58 +612,89 @@ fun GroupCreatorTab(
                             Spacer(modifier = Modifier.width(6.dp))
                             Text("Grupları Yeniden Karıştır", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         }
+
+                        FloatingActionButton(
+                            onClick = { isZoomedIn = !isZoomedIn },
+                            modifier = Modifier.size(40.dp),
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            shape = CircleShape
+                        ) {
+                            Icon(
+                                imageVector = if (isZoomedIn) Icons.Default.ZoomOut else Icons.Default.ZoomIn, 
+                                contentDescription = "Büyüteç",
+                                modifier = Modifier.size(20.dp),
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
                     }
 
-                    // Horizontal Scrollable Grid of columns
-                    val scrollState = rememberScrollState()
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                            .horizontalScroll(scrollState),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        for (groupPair in activeGroups) {
-                            val groupName = groupPair.first
-                            val list = groupPair.second
+                    Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                        val scrollState = rememberScrollState()
+                        
+                        val rowModifier = if (isZoomedIn) {
+                            Modifier.fillMaxSize().horizontalScroll(scrollState)
+                        } else {
+                            Modifier.fillMaxWidth().wrapContentHeight()
+                        }
+                        
+                        Row(
+                            modifier = rowModifier,
+                            horizontalArrangement = if (isZoomedIn) Arrangement.spacedBy(16.dp) else Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            for (groupPair in activeGroups) {
+                                val groupName = groupPair.first
+                                val list = groupPair.second
 
-                            Card(
-                                modifier = Modifier
-                                    .width(280.dp)
-                                    .fillMaxHeight(),
-                                colors = CardDefaults.cardColors(containerColor = Color.White),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-                                shape = RoundedCornerShape(16.dp)
-                            ) {
-                                Column(modifier = Modifier.padding(14.dp)) {
+                                val cardModifier = if (isZoomedIn) {
+                                    Modifier.width(280.dp).fillMaxHeight()
+                                } else {
+                                    Modifier.weight(1f).fillMaxHeight()
+                                }
+
+                                Card(
+                                    modifier = cardModifier,
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                                    shape = RoundedCornerShape(16.dp),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                                ) {
+                                Column(modifier = Modifier.padding(if (isZoomedIn) 14.dp else 4.dp)) {
                                     // Header Box with group label & child count
                                     Row(
-                                        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                                        modifier = Modifier.fillMaxWidth().padding(bottom = if (isZoomedIn) 12.dp else 4.dp),
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text(groupName, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A), fontSize = 14.sp)
+                                        Text(
+                                            groupName.replace("GRUP", if (isZoomedIn) "GRUP" else "G."), 
+                                            fontWeight = FontWeight.Bold, 
+                                            color = MaterialTheme.colorScheme.onSurface, 
+                                            fontSize = if (isZoomedIn) 14.sp else 9.sp,
+                                            maxLines = 1
+                                        )
                                         Box(
                                             modifier = Modifier
-                                                .background(Color(0xFFF1F5F9), RoundedCornerShape(6.dp))
-                                                .padding(horizontal = 8.dp, vertical = 2.dp)
+                                                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(6.dp))
+                                                .padding(horizontal = if (isZoomedIn) 8.dp else 4.dp, vertical = if (isZoomedIn) 2.dp else 1.dp)
                                         ) {
-                                            Text("${list.size} ÖĞRENCİ", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF475569))
+                                            Text("${list.size}", fontSize = if (isZoomedIn) 10.sp else 8.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                         }
                                     }
 
                                     // List of students inside this column
                                     LazyColumn(
-                                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalArrangement = Arrangement.spacedBy(if (isZoomedIn) 8.dp else 4.dp),
                                         modifier = Modifier.weight(1f)
                                     ) {
                                         items(list) { student ->
-                                            StudentMiniCard(student = student)
+                                            StudentMiniCard(student = student, isZoomedIn = isZoomedIn)
                                         }
                                     }
                                 }
                             }
                         }
+                    }
                     }
                 }
             } else {
@@ -1407,38 +1425,45 @@ fun GroupCreatorTab(
 
 // Student Mini Card component representation logic
 @Composable
-fun StudentMiniCard(student: Student) {
+fun StudentMiniCard(student: Student, isZoomedIn: Boolean = true) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color(0xFFF8FAFC), RoundedCornerShape(10.dp))
-            .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(10.dp))
-            .padding(10.dp),
+            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(10.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp))
+            .padding(if (isZoomedIn) 10.dp else 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         val isGirl = student.gender.equals("Kız", ignoreCase = true)
-        val badgeBg = if (isGirl) Color(0xFFFCE7F3) else Color(0xFFE0F2FE)
-        val badgeText = if (isGirl) Color(0xFFDB2777) else Color(0xFF0369A1)
+        val isDarkTheme = androidx.compose.foundation.isSystemInDarkTheme()
+        val badgeBg = when {
+            isGirl -> if (isDarkTheme) Color(0xFF5D2439) else Color(0xFFFFEBEE)
+            else -> if (isDarkTheme) Color(0xFF1C3A5A) else Color(0xFFE3F2FD)
+        }
+        val badgeText = when {
+            isGirl -> Color(0xFFDB2777)
+            else -> Color(0xFF0369A1)
+        }
 
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(6.dp))
                 .background(badgeBg)
-                .padding(horizontal = 8.dp, vertical = 2.dp)
+                .padding(horizontal = if (isZoomedIn) 8.dp else 4.dp, vertical = if (isZoomedIn) 2.dp else 1.dp)
         ) {
             Text(
                 student.studentNo.ifEmpty { "0" },
-                fontSize = 10.sp,
+                fontSize = if (isZoomedIn) 10.sp else 8.sp,
                 color = badgeText,
                 fontWeight = FontWeight.Bold
             )
         }
-        Spacer(modifier = Modifier.width(10.dp))
+        Spacer(modifier = Modifier.width(if (isZoomedIn) 10.dp else 4.dp))
         Text(
-            "${student.name} ${student.surname}",
+            if (isZoomedIn) "${student.name} ${student.surname}" else "${student.name} ${student.surname.take(1)}.",
             fontWeight = FontWeight.Bold,
-            fontSize = 12.sp,
-            color = Color(0xFF1E293B),
+            fontSize = if (isZoomedIn) 12.sp else 9.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1
         )
     }

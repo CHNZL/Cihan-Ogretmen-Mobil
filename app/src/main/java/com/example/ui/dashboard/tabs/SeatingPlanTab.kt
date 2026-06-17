@@ -49,6 +49,8 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.ZoomIn
+import androidx.compose.material.icons.filled.ZoomOut
 import android.content.Context
 import android.print.PrintAttributes
 import android.print.PrintManager
@@ -79,6 +81,7 @@ fun SeatingPlanTab(userData: UserData) {
     var isYatayKaydirmaOpen by remember { mutableStateOf(false) }
     var isDikeyKaydirmaOpen by remember { mutableStateOf(false) }
     var isRandomPlacementOpen by remember { mutableStateOf(false) }
+    var isZoomedIn by remember { mutableStateOf(false) }
 
     val context = androidx.compose.ui.platform.LocalContext.current
     var jsonStringToExport by remember { mutableStateOf("") }
@@ -201,32 +204,19 @@ fun SeatingPlanTab(userData: UserData) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF8FAFC))
+            .background(MaterialTheme.colorScheme.background)
             .padding(16.dp)
     ) {
-        // Top Bar
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        // Full width Generate button
+        Button(
+            onClick = { isOptionsModalOpen = true },
+            modifier = Modifier.fillMaxWidth().height(48.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+            shape = RoundedCornerShape(12.dp)
         ) {
-            Column {
-                Text(
-                    "Oturma Planı",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1E293B)
-                )
-            }
-            Button(
-                onClick = { isOptionsModalOpen = true },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4F46E5)),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Icon(Icons.Default.GridView, contentDescription = null, modifier = Modifier.size(20.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Oturma Planı Oluştur", fontWeight = FontWeight.Bold)
-            }
+            Icon(Icons.Default.GridView, contentDescription = null, modifier = Modifier.size(20.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Yeni Oturma Planı Oluştur", fontWeight = FontWeight.Bold, fontSize = 16.sp)
         }
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -425,121 +415,144 @@ fun SeatingPlanTab(userData: UserData) {
                 Text("Henüz oturma planı oluşturulmamış.", color = Color.Gray)
             }
         } else {
-            Card(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                shape = RoundedCornerShape(24.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                border = BorderStroke(1.dp, Color(0xFFF1F5F9))
+                    .weight(1f)
             ) {
-                Box(
+                Card(
                     modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    shape = RoundedCornerShape(24.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant)
                 ) {
-                    val defaultScrollState = rememberScrollState()
-                    val horizontalScrollState = rememberScrollState()
-                    Row(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(24.dp)
-                            .verticalScroll(defaultScrollState)
-                            .horizontalScroll(horizontalScrollState),
-                        horizontalArrangement = Arrangement.spacedBy(24.dp)
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
                     ) {
-                        for (groupIdx in 0 until seatingConfig.groupCount) {
-                            val rowsInGroup = seatingConfig.rowsPerGroup.getOrElse(groupIdx) { 5 }.coerceAtLeast(1)
-                            
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(16.dp),
-                                modifier = Modifier.wrapContentWidth()
-                            ) {
-                                Text(
-                                    "${groupIdx + 1}. GRUP",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.Gray,
-                                    letterSpacing = 2.sp
-                                )
+                        val defaultScrollState = rememberScrollState()
+                        val horizontalScrollState = rememberScrollState()
+                        
+                        val baseModifier = if (isZoomedIn) {
+                            Modifier
+                                .fillMaxSize()
+                                .padding(24.dp)
+                                .verticalScroll(defaultScrollState)
+                                .horizontalScroll(horizontalScrollState)
+                        } else {
+                            Modifier
+                                .fillMaxWidth()
+                                .wrapContentHeight()
+                                .padding(8.dp)
+                        }
+
+                        Row(
+                            modifier = baseModifier,
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            for (groupIdx in 0 until seatingConfig.groupCount) {
+                                val rowsInGroup = seatingConfig.rowsPerGroup.getOrElse(groupIdx) { 5 }.coerceAtLeast(1)
                                 
-                                for (rowIdx in 0 until rowsInGroup) {
-                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        for (seatIdx in 0 until seatingConfig.peoplePerRow) {
-                                            val seatId = "g$groupIdx-r$rowIdx-s$seatIdx"
-                                            val studentId = seatingPlan[seatId]
-                                            val student = students.find { it.id == studentId }
+                                val groupModifier = if (isZoomedIn) Modifier.wrapContentWidth() else Modifier.weight(1f)
+                                
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(if (isZoomedIn) 16.dp else 4.dp),
+                                    modifier = groupModifier
+                                ) {
+                                    Text(
+                                        "${groupIdx + 1}. GRUP",
+                                        fontSize = if (isZoomedIn) 12.sp else 9.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.Gray,
+                                        letterSpacing = if (isZoomedIn) 2.sp else 1.sp
+                                    )
+                                    
+                                    for (rowIdx in 0 until rowsInGroup) {
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(if (isZoomedIn) 8.dp else 2.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            for (seatIdx in 0 until seatingConfig.peoplePerRow) {
+                                                val seatId = "g$groupIdx-r$rowIdx-s$seatIdx"
+                                                val studentId = seatingPlan[seatId]
+                                                val student = students.find { it.id == studentId }
 
-                                            val isGirl = student?.gender?.trim()?.lowercase() == "kız"
-                                            val isBoy = student?.gender?.trim()?.lowercase() == "erkek"
-                                            
-                                            val cardBgColor = when {
-                                                isGirl -> Color(0xFFFDF2F8) // pink-50
-                                                isBoy -> Color(0xFFEFF6FF)  // blue-50
-                                                student != null -> Color.White
-                                                else -> Color(0xFFF1F5F9)   // slate-100 for empty
-                                            }
-                                            
-                                            val cardBorderColor = when {
-                                                isGirl -> Color(0xFFF472B6) // pink-400
-                                                isBoy -> Color(0xFF60A5FA)  // blue-400
-                                                student != null -> Color(0xFFCBD5E1)
-                                                else -> Color(0xFFE2E8F0)
-                                            }
-                                            
-                                            val textNoColor = when {
-                                                isGirl -> Color(0xFFDB2777) // pink-600
-                                                isBoy -> Color(0xFF2563EB)  // blue-600
-                                                else -> Color(0xFF3B82F6)
-                                            }
-
-                                            Card(
-                                                modifier = Modifier.size(width = 100.dp, height = 100.dp),
-                                                colors = CardDefaults.cardColors(
-                                                    containerColor = cardBgColor
-                                                ),
-                                                border = BorderStroke(
-                                                    width = if (student != null) 2.dp else 1.dp,
-                                                    color = cardBorderColor
-                                                ),
-                                                shape = RoundedCornerShape(16.dp)
-                                            ) {
-                                                Column(
-                                                    modifier = Modifier.fillMaxSize().padding(8.dp),
-                                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                                    verticalArrangement = Arrangement.Center
+                                                val isGirl = student?.gender?.trim()?.lowercase() == "kız"
+                                                val isBoy = student?.gender?.trim()?.lowercase() == "erkek"
+                                                
+                                                val isDarkTheme = androidx.compose.foundation.isSystemInDarkTheme()
+                                                val cardBgColor = when {
+                                                    isGirl -> if (isDarkTheme) Color(0xFF5D2439) else Color(0xFFFFEBEE)
+                                                    isBoy -> if (isDarkTheme) Color(0xFF1C3A5A) else Color(0xFFE3F2FD)
+                                                    student != null -> MaterialTheme.colorScheme.surfaceContainer
+                                                    else -> MaterialTheme.colorScheme.surfaceVariant
+                                                }
+                                                
+                                                val cardBorderColor = when {
+                                                    isGirl -> Color(0xFFF472B6)
+                                                    isBoy -> Color(0xFF60A5FA)
+                                                    student != null -> MaterialTheme.colorScheme.outline
+                                                    else -> MaterialTheme.colorScheme.outlineVariant
+                                                }
+                                                
+                                                val textNoColor = when {
+                                                    isGirl -> Color(0xFFDB2777)
+                                                    isBoy -> Color(0xFF2563EB)
+                                                    else -> MaterialTheme.colorScheme.primary
+                                                }
+                                                
+                                                val seatModifier = if (isZoomedIn) Modifier.size(width = 100.dp, height = 100.dp) else Modifier.weight(1f).aspectRatio(1f)
+                                                
+                                                Card(
+                                                    modifier = seatModifier,
+                                                    colors = CardDefaults.cardColors(containerColor = cardBgColor),
+                                                    border = BorderStroke(
+                                                        width = if (student != null) 2.dp else 1.dp,
+                                                        color = cardBorderColor
+                                                    ),
+                                                    shape = RoundedCornerShape(if (isZoomedIn) 16.dp else 4.dp)
                                                 ) {
-                                                    if (student != null) {
-                                                        Text(
-                                                            student.studentNo,
-                                                            fontWeight = FontWeight.Black,
-                                                            fontSize = 18.sp,
-                                                            color = textNoColor,
-                                                        )
-                                                        Spacer(modifier = Modifier.height(4.dp))
-                                                        Text(
-                                                            "${student.name} ${student.surname.take(1)}.",
-                                                            fontWeight = FontWeight.Bold,
-                                                            fontSize = 12.sp,
-                                                            color = Color(0xFF1E293B),
-                                                            maxLines = 2,
-                                                            lineHeight = 14.sp,
-                                                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                                                        )
-                                                    } else {
-                                                        Icon(
-                                                            Icons.Default.Close,
-                                                            contentDescription = "Boş",
-                                                            tint = Color(0xFFCBD5E1),
-                                                            modifier = Modifier.size(24.dp)
-                                                        )
-                                                        Text(
-                                                            "BOŞ",
-                                                            fontSize = 10.sp,
-                                                            fontWeight = FontWeight.Bold,
-                                                            color = Color(0xFFCBD5E1)
-                                                        )
+                                                    Column(
+                                                        modifier = Modifier.fillMaxSize().padding(if (isZoomedIn) 8.dp else 2.dp),
+                                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                                        verticalArrangement = Arrangement.Center
+                                                    ) {
+                                                        if (student != null) {
+                                                            Text(
+                                                                student.studentNo,
+                                                                fontWeight = FontWeight.Black,
+                                                                fontSize = if (isZoomedIn) 18.sp else 10.sp,
+                                                                color = textNoColor,
+                                                            )
+                                                            if (isZoomedIn) Spacer(modifier = Modifier.height(4.dp))
+                                                            Text(
+                                                                "${student.name} ${student.surname.take(1)}.",
+                                                                fontWeight = FontWeight.Bold,
+                                                                fontSize = if (isZoomedIn) 12.sp else 7.sp,
+                                                                color = MaterialTheme.colorScheme.onSurface,
+                                                                maxLines = 2,
+                                                                lineHeight = if (isZoomedIn) 14.sp else 8.sp,
+                                                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                                            )
+                                                        } else {
+                                                            Icon(
+                                                                Icons.Default.Close,
+                                                                contentDescription = "Boş",
+                                                                tint = cardBorderColor,
+                                                                modifier = Modifier.size(if (isZoomedIn) 24.dp else 12.dp)
+                                                            )
+                                                            if (isZoomedIn) {
+                                                                Text(
+                                                                    "BOŞ",
+                                                                    fontSize = 10.sp,
+                                                                    fontWeight = FontWeight.Bold,
+                                                                    color = cardBorderColor
+                                                                )
+                                                            }
+                                                        }
                                                     }
                                                 }
                                             }
@@ -549,6 +562,21 @@ fun SeatingPlanTab(userData: UserData) {
                             }
                         }
                     }
+                }
+                
+                // Zoom button
+                FloatingActionButton(
+                    onClick = { isZoomedIn = !isZoomedIn },
+                    modifier = Modifier.align(Alignment.TopEnd).padding(top = 12.dp, end = 12.dp).size(40.dp),
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    shape = androidx.compose.foundation.shape.CircleShape
+                ) {
+                    Icon(
+                        imageVector = if (isZoomedIn) Icons.Default.ZoomOut else Icons.Default.ZoomIn, 
+                        contentDescription = "Büyüteç",
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
                 }
             }
         }

@@ -16,6 +16,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -74,8 +75,7 @@ fun ScheduleTab(
     var subjectNameInput by remember { mutableStateOf("") }
     var subjectColorInput by remember { mutableStateOf("#3b82f6") }
 
-    // Selected Day on Timeline View (Compact Layout)
-    var selectedDayTab by remember { mutableStateOf("Pazartesi") }
+    var isZoomedIn by remember { mutableStateOf(false) }
 
     val pdfExportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/pdf")
@@ -202,13 +202,6 @@ fun ScheduleTab(
     // Calculate active config
     val activeConfig = scheduleConfig ?: ScheduleConfig()
 
-    // Ensure selected day tab is always contained in the config days list
-    LaunchedEffect(activeConfig.days) {
-        if (!activeConfig.days.contains(selectedDayTab) && activeConfig.days.isNotEmpty()) {
-            selectedDayTab = activeConfig.days.first()
-        }
-    }
-
     // Calculated list of units
     val calculatedTimeSlots = remember(activeConfig) {
         generateTimeSlots(activeConfig)
@@ -307,72 +300,31 @@ fun ScheduleTab(
                 CircularProgressIndicator()
             }
         } else {
-            // Day selector Tabs (Horizontal swipe or list)
-            ScrollableTabRow(
-                selectedTabIndex = activeConfig.days.indexOf(selectedDayTab).coerceAtLeast(0),
-                edgePadding = 16.dp,
-                containerColor = Color.Transparent,
-                divider = {}
-            ) {
-                activeConfig.days.forEach { day ->
-                    Tab(
-                        selected = selectedDayTab == day,
-                        onClick = { selectedDayTab = day },
-                        text = { Text(day, fontWeight = FontWeight.Bold) }
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Main vertical timeline column
-            LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(bottom = 24.dp)
-            ) {
-                items(calculatedTimeSlots) { slot ->
-                    when (slot.type) {
-                        TimeSlotType.Lesson -> {
-                            val slotKey = getWebSlotKey(selectedDayTab, slot.number)
-                            val subjectIdInSlot = scheduleData.slots[slotKey]
-                            val matchingSubject = subjects.find { it.id == subjectIdInSlot || it.name == subjectIdInSlot }
-                            val displaySubjectName = matchingSubject?.name ?: subjectIdInSlot ?: ""
-                            val subjectColor = matchingSubject?.color ?: "#9e9e9e"
-
-                            LessonSlotCard(
-                                number = slot.number,
-                                startTime = slot.start,
-                                endTime = slot.end,
-                                subjectName = displaySubjectName,
-                                colorHex = subjectColor,
-                                onClick = {
-                                    selectedSlotDay = selectedDayTab
-                                    selectedSlotLessonNumber = slot.number
-                                    isSubjectSelectOpen = true
-                                }
-                            )
-                        }
-                        TimeSlotType.Recess -> {
-                            BreakSlotRow(
-                                title = "TENEFFÜS",
-                                startTime = slot.start,
-                                endTime = slot.end,
-                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
-                            )
-                        }
-                        TimeSlotType.Lunch -> {
-                            BreakSlotRow(
-                                title = "ÖĞLE ARASI",
-                                startTime = slot.start,
-                                endTime = slot.end,
-                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-                            )
-                        }
+            Box(modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+                ScheduleTable(
+                    activeConfig = activeConfig,
+                    calculatedTimeSlots = calculatedTimeSlots,
+                    scheduleData = scheduleData,
+                    subjects = subjects,
+                    isZoomedIn = isZoomedIn,
+                    onSlotClick = { day, number ->
+                        selectedSlotDay = day
+                        selectedSlotLessonNumber = number
+                        isSubjectSelectOpen = true
                     }
+                )
+
+                FloatingActionButton(
+                    onClick = { isZoomedIn = !isZoomedIn },
+                    modifier = Modifier.align(Alignment.TopEnd).padding(top = 4.dp, end = 4.dp).size(40.dp),
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    shape = CircleShape
+                ) {
+                    Icon(
+                        imageVector = if (isZoomedIn) Icons.Default.ZoomOut else Icons.Default.ZoomIn, 
+                        contentDescription = "Zoom",
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
         }
@@ -1239,5 +1191,148 @@ data class CalculatedTimeSlot(
 
 fun getWebSlotKey(dayName: String, lessonNumber: Int): String {
     return "${dayName}_$lessonNumber"
+}
+
+@Composable
+fun ScheduleTable(
+    activeConfig: ScheduleConfig,
+    calculatedTimeSlots: List<CalculatedTimeSlot>,
+    scheduleData: ScheduleData,
+    subjects: List<Subject>,
+    isZoomedIn: Boolean,
+    onSlotClick: (String, Int) -> Unit
+) {
+    val scrollStateHorizontal = rememberScrollState()
+    val scrollStateVertical = rememberScrollState()
+    
+    val baseModifier = if (isZoomedIn) {
+        Modifier
+            .fillMaxSize()
+            .horizontalScroll(scrollStateHorizontal)
+            .verticalScroll(scrollStateVertical)
+    } else {
+        Modifier.fillMaxSize()
+    }
+    
+    val headerSize = if (isZoomedIn) 12.sp else 8.sp
+    val timeSize = if (isZoomedIn) 10.sp else 6.sp
+    val contentSize = if (isZoomedIn) 12.sp else 7.sp
+    val minColWidth = if (isZoomedIn) 120.dp else 0.dp
+    val timeColWidth = if (isZoomedIn) 60.dp else 40.dp
+    val slotHeight = if (isZoomedIn) 80.dp else 0.dp
+    
+    Box(modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(12.dp)).border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))) {
+        Column(
+            modifier = baseModifier.background(MaterialTheme.colorScheme.surface)
+        ) {
+            // Header Row
+            Row(
+                modifier = Modifier.fillMaxWidth().height(if (isZoomedIn) 40.dp else 0.dp).let { if (!isZoomedIn) it.weight(0.6f) else it }.background(MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Box(
+                    modifier = Modifier.width(timeColWidth).fillMaxHeight().border(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = "Saat", style = MaterialTheme.typography.labelSmall, fontSize = headerSize, fontWeight = FontWeight.Bold)
+                }
+                
+                activeConfig.days.forEach { day ->
+                    val mod = if (isZoomedIn) Modifier.width(minColWidth) else Modifier.weight(1f)
+                    Box(
+                        modifier = mod.fillMaxHeight().border(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(text = day.take(3), style = MaterialTheme.typography.labelSmall, fontSize = headerSize, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+            
+            // Slots
+            calculatedTimeSlots.forEach { slot ->
+                val rowMod = if (isZoomedIn) {
+                    if (slot.type == TimeSlotType.Lesson) Modifier.height(slotHeight).fillMaxWidth() 
+                    else Modifier.height(30.dp).fillMaxWidth()
+                } else {
+                    if (slot.type == TimeSlotType.Lesson) Modifier.weight(2f).fillMaxWidth() 
+                    else Modifier.weight(0.7f).fillMaxWidth()
+                }
+                
+                Row(modifier = rowMod) {
+                    // Time column
+                    Box(
+                        modifier = Modifier.width(timeColWidth).fillMaxHeight().background(MaterialTheme.colorScheme.surface).border(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                            Text(text = slot.start, style = MaterialTheme.typography.labelSmall, fontSize = timeSize, textAlign = TextAlign.Center, lineHeight = timeSize.times(1.2))
+                            Text(text = slot.end, style = MaterialTheme.typography.labelSmall, fontSize = timeSize, textAlign = TextAlign.Center, lineHeight = timeSize.times(1.2))
+                        }
+                    }
+                    
+                    // Content columns
+                    if (slot.type == TimeSlotType.Lesson) {
+                        activeConfig.days.forEach { day ->
+                            val slotKey = getWebSlotKey(day, slot.number)
+                            val subjectIdInSlot = scheduleData.slots[slotKey]
+                            val matchingSubject = subjects.find { it.id == subjectIdInSlot || it.name == subjectIdInSlot }
+                            val displaySubjectName = matchingSubject?.name ?: subjectIdInSlot ?: ""
+                            val subjectColor = matchingSubject?.color ?: "#00000000" // transparent if empty
+                            
+                            val mod = if (isZoomedIn) Modifier.width(minColWidth) else Modifier.weight(1f)
+                            Box(
+                                modifier = mod.fillMaxHeight()
+                                    .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant)
+                                    .let {
+                                        if (displaySubjectName.isNotEmpty()) {
+                                            it.background(parseHexColor(subjectColor).copy(alpha = 0.2f))
+                                        } else {
+                                            it.background(MaterialTheme.colorScheme.surface)
+                                        }
+                                    }
+                                    .clickable { onSlotClick(day, slot.number) },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (displaySubjectName.isNotEmpty()) {
+                                    Text(
+                                        text = displaySubjectName, 
+                                        style = MaterialTheme.typography.labelSmall, 
+                                        fontSize = contentSize, 
+                                        fontWeight = FontWeight.Bold,
+                                        color = parseHexColor(subjectColor),
+                                        textAlign = TextAlign.Center,
+                                        maxLines = if (isZoomedIn) 3 else 2,
+                                        lineHeight = contentSize.times(1.2),
+                                        modifier = Modifier.padding(2.dp)
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        // Break or Lunch
+                        val mod = if (isZoomedIn) Modifier.width(minColWidth * activeConfig.days.size) else Modifier.weight(activeConfig.days.size.toFloat())
+                        Box(
+                            modifier = mod.fillMaxHeight()
+                                .background(
+                                    if (slot.type == TimeSlotType.Lunch) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) 
+                                    else MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)
+                                )
+                                .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = if (slot.type == TimeSlotType.Lunch) "ÖĞLE ARASI" else "TENEFFÜS", 
+                                style = MaterialTheme.typography.labelSmall, 
+                                fontSize = timeSize.times(1.2f),
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                letterSpacing = 2.sp,
+                                maxLines = 1
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 

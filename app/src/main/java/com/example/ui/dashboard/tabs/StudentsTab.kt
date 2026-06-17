@@ -97,66 +97,55 @@ fun StudentsTab(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Button(
+            TabFilterButton(
+                title = "Tümü",
+                count = totalCount.toString(),
+                isSelected = activeFilter == "Tümü",
                 onClick = { activeFilter = "Tümü" },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (activeFilter == "Tümü") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-                    contentColor = if (activeFilter == "Tümü") MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-                ),
-                contentPadding = PaddingValues(0.dp),
-                shape = MaterialTheme.shapes.small
-            ) {
-                Text("Tümü\n$totalCount", style = MaterialTheme.typography.labelSmall, textAlign = androidx.compose.ui.text.style.TextAlign.Center, lineHeight = 12.sp)
-            }
-            Button(
+                modifier = Modifier.weight(1f)
+            )
+            TabFilterButton(
+                title = "Erkek",
+                count = maleCount.toString(),
+                isSelected = activeFilter == "Erkek",
                 onClick = { activeFilter = "Erkek" },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (activeFilter == "Erkek") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-                    contentColor = if (activeFilter == "Erkek") MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-                ),
-                contentPadding = PaddingValues(0.dp),
-                shape = MaterialTheme.shapes.small
-            ) {
-                Text("Erkek\n$maleCount", style = MaterialTheme.typography.labelSmall, textAlign = androidx.compose.ui.text.style.TextAlign.Center, lineHeight = 12.sp)
-            }
-            Button(
+                modifier = Modifier.weight(1f)
+            )
+            TabFilterButton(
+                title = "Kız",
+                count = femaleCount.toString(),
+                isSelected = activeFilter == "Kız",
                 onClick = { activeFilter = "Kız" },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (activeFilter == "Kız") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-                    contentColor = if (activeFilter == "Kız") MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-                ),
-                contentPadding = PaddingValues(0.dp),
-                shape = MaterialTheme.shapes.small
-            ) {
-                Text("Kız\n$femaleCount", style = MaterialTheme.typography.labelSmall, textAlign = androidx.compose.ui.text.style.TextAlign.Center, lineHeight = 12.sp)
-            }
-            Button(
+                modifier = Modifier.weight(1f)
+            )
+            TabFilterButton(
+                title = "Doğum",
+                count = birthdayCount.toString(),
+                isSelected = activeFilter == "Doğum Günü",
                 onClick = { activeFilter = "Doğum Günü" },
-                modifier = Modifier.weight(1.2f),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (activeFilter == "Doğum Günü") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-                    contentColor = if (activeFilter == "Doğum Günü") MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-                ),
-                contentPadding = PaddingValues(0.dp),
-                shape = MaterialTheme.shapes.small
+                modifier = Modifier.weight(1f)
+            )
+            
+            androidx.compose.material3.Card(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(52.dp)
+                    .clickable { showAddDialog = true },
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+                colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
+                elevation = androidx.compose.material3.CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
-                Text("Doğum\n$birthdayCount", style = MaterialTheme.typography.labelSmall, textAlign = androidx.compose.ui.text.style.TextAlign.Center, lineHeight = 12.sp)
-            }
-            Button(
-                onClick = { showAddDialog = true },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                contentPadding = PaddingValues(0.dp),
-                shape = MaterialTheme.shapes.small
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Text("Ekle", style = MaterialTheme.typography.labelSmall)
+                androidx.compose.foundation.layout.Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onPrimary)
+                        Text("Ekle", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
@@ -391,10 +380,11 @@ fun StudentsTab(
 
 @Composable
 fun StudentItem(student: Student, onClick: () -> Unit) {
+    val isDarkTheme = androidx.compose.foundation.isSystemInDarkTheme()
     val bgColor = if (student.gender.equals("Kız", ignoreCase = true)) {
-        Color(0xFFFFEBEE)
+        if (isDarkTheme) Color(0xFF5D2439) else Color(0xFFFFEBEE)
     } else if (student.gender.equals("Erkek", ignoreCase = true)) {
-        Color(0xFFE3F2FD)
+        if (isDarkTheme) Color(0xFF1C3A5A) else Color(0xFFE3F2FD)
     } else {
         MaterialTheme.colorScheme.surfaceVariant
     }
@@ -519,6 +509,48 @@ fun StudentDetailsDialog(
                         Text("Düzenle")
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun TabFilterButton(
+    title: String,
+    count: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val gradientColors = if (isSelected) {
+        listOf(
+            MaterialTheme.colorScheme.primary,
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+        )
+    } else {
+        val baseColor = MaterialTheme.colorScheme.surfaceVariant
+        listOf(baseColor, baseColor)
+    }
+    
+    val textColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+
+    androidx.compose.material3.Card(
+        modifier = modifier
+            .height(52.dp)
+            .clickable { onClick() },
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+        colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
+        elevation = androidx.compose.material3.CardDefaults.cardElevation(defaultElevation = if (isSelected) 2.dp else 0.dp)
+    ) {
+        androidx.compose.foundation.layout.Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(androidx.compose.ui.graphics.Brush.verticalGradient(gradientColors)),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                Text(title, style = MaterialTheme.typography.labelSmall, color = textColor, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium)
+                Text(count, style = MaterialTheme.typography.titleSmall, color = textColor, fontWeight = FontWeight.Bold)
             }
         }
     }

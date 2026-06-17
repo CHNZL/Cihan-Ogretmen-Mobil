@@ -208,24 +208,33 @@ fun StarsClassTab(userData: com.example.auth.UserData) {
     ) {
         // Header (Stacked for mobile support without empty space)
         Column(
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = { /* Back to home potentially */ }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Geri")
-                }
-                Column {
-                    Text("YILDIZLAR SINIFI", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E293B))
-                    Text("Öğrencilerinizi motive edin ve başarılarını yıldızlarla ödüllendirin.", fontSize = 12.sp, color = Color(0xFF64748B))
-                }
+            Button(
+                onClick = {
+                    actDescription = ""
+                    actStarsCount = 1
+                    actTimeSeconds = 0
+                    actCurrentTimer = 0
+                    actStudentTarget = 0
+                    actCategory = null
+                    selectedStudentNames.clear()
+                    showActivityStarStep1 = true
+                },
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6366F1)),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("ETKİNLİKLİ YILDIZ VER", fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
-            
-            Spacer(modifier = Modifier.height(16.dp))
             
             // Actions Row (Horizontally scrollable to fit mobile gracefully)
             Row(
                 modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Secondary Icons
@@ -237,42 +246,22 @@ fun StarsClassTab(userData: com.example.auth.UserData) {
                             students = repo.getStudents(userData.userId).sortedBy { it.studentNo.toIntOrNull() ?: 9999 }
                             isLoading = false
                         }
-                    }, modifier = Modifier.size(36.dp)) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Yenile", tint = Color(0xFF94A3B8), modifier = Modifier.size(20.dp))
+                    }, modifier = Modifier.size(40.dp)) {
+                        Icon(Icons.Default.Refresh, contentDescription = "Yenile", tint = Color(0xFF94A3B8), modifier = Modifier.size(24.dp))
                     }
                     IconButton(onClick = { 
                         createDocumentLauncher.launch("yildizlar_sinif_listesi.xls")
-                    }, modifier = Modifier.size(36.dp)) {
-                        Icon(Icons.Default.Download, contentDescription = "İndir", tint = Color(0xFF94A3B8), modifier = Modifier.size(20.dp))
+                    }, modifier = Modifier.size(40.dp)) {
+                        Icon(Icons.Default.Download, contentDescription = "İndir", tint = Color(0xFF94A3B8), modifier = Modifier.size(24.dp))
                     }
                     IconButton(onClick = { 
                         openDocumentLauncher.launch(arrayOf("application/vnd.ms-excel", "text/tab-separated-values", "text/plain", "*/*"))
-                    }, modifier = Modifier.size(36.dp)) {
-                        Icon(Icons.Default.Upload, contentDescription = "Yükle", tint = Color(0xFF94A3B8), modifier = Modifier.size(20.dp))
+                    }, modifier = Modifier.size(40.dp)) {
+                        Icon(Icons.Default.Upload, contentDescription = "Yükle", tint = Color(0xFF94A3B8), modifier = Modifier.size(24.dp))
                     }
-                    IconButton(onClick = { showDeleteAllPrompt = true }, modifier = Modifier.size(36.dp)) {
-                        Icon(Icons.Default.Delete, contentDescription = null, tint = Color(0xFF94A3B8), modifier = Modifier.size(20.dp))
+                    IconButton(onClick = { showDeleteAllPrompt = true }, modifier = Modifier.size(40.dp)) {
+                        Icon(Icons.Default.Delete, contentDescription = null, tint = Color(0xFF94A3B8), modifier = Modifier.size(24.dp))
                     }
-                }
-                
-                Button(
-                    onClick = {
-                        actDescription = ""
-                        actStarsCount = 1
-                        actTimeSeconds = 0
-                        actCurrentTimer = 0
-                        actStudentTarget = 0
-                        actCategory = null
-                        selectedStudentNames.clear()
-                        showActivityStarStep1 = true
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6366F1)),
-                    shape = RoundedCornerShape(8.dp),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
-                ) {
-                    Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("ETKİNLİKLİ YILDIZ VER", fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 }
                 
                 // Tabs Segmented
@@ -907,28 +896,49 @@ fun StudentStarCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
+            ) {
                 Text(
                     text = number,
-                    fontWeight = FontWeight.Black,
-                    fontSize = 16.sp,
-                    color = Color(0xFFE11D48),
-                    modifier = Modifier.width(36.dp)
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    color = Color(0xFF0F172A),
+                    modifier = Modifier.widthIn(min = 24.dp)
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                Column {
-                    Text(text = name, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0F172A))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFF59E0B), modifier = Modifier.size(12.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(text = "$stars Yıldız", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFF59E0B))
-                    }
-                }
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = name,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    color = Color(0xFF0F172A),
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onHistoryClick, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.History, contentDescription = "History", tint = Color(0xFF94A3B8), modifier = Modifier.size(18.dp))
+                Box(
+                    modifier = Modifier
+                        .background(Color(0xFFFEF3C7), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = "$stars", fontWeight = FontWeight.Black, fontSize = 14.sp, color = Color(0xFFD97706))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFF59E0B), modifier = Modifier.size(16.dp))
+                    }
                 }
+                
+                Spacer(modifier = Modifier.width(8.dp))
+                
+                IconButton(onClick = onHistoryClick, modifier = Modifier.size(32.dp)) {
+                    Icon(Icons.Default.History, contentDescription = "History", tint = Color(0xFF94A3B8), modifier = Modifier.size(20.dp))
+                }
+                
+                Spacer(modifier = Modifier.width(4.dp))
+                
                 Box(
                     modifier = Modifier
                         .size(36.dp)
