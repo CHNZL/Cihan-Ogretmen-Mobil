@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -254,66 +255,65 @@ fun LuckyStudentTab(userData: UserData) {
         ) {
             // Top Bar
             Row(
-                modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(12.dp)).padding(if (isCompact) 8.dp else 16.dp),
+                modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(12.dp)).padding(if (isCompact) 12.dp else 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (selectedGame != null) {
-                        IconButton(onClick = { selectedGame = null }) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Geri", tint = Color(0xFF64748B))
+                if (selectedGame != null) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = { selectedGame = null }, modifier = Modifier.size(36.dp)) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Geri", tint = Color(0xFF64748B))
                         }
-                        if (!isCompact) {
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Column {
-                                Text(selectedGame?.uppercase() ?: "", fontWeight = FontWeight.Black, fontSize = 16.sp, color = Color(0xFF0F172A))
-                                Text("Derse katılımı artırmak için eğlenceli bir yöntem seçin.", fontSize = 12.sp, color = Color(0xFF94A3B8))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text(selectedGame?.uppercase() ?: "", fontWeight = FontWeight.Black, fontSize = 16.sp, color = Color(0xFF0F172A))
+                            if (!isCompact) {
+                                Text("Derse katılımı artırmak için eğlenceli bir yöntem", fontSize = 12.sp, color = Color(0xFF94A3B8))
                             }
-                        } else {
-                            Text(selectedGame?.uppercase() ?: "", fontWeight = FontWeight.Black, fontSize = 16.sp, color = Color(0xFF0F172A), modifier = Modifier.padding(start = 8.dp))
+                        }
+                    }
+                } else {
+                    // Empty space or a simple subtitle on the left, but for a balanced look, we can just show the Participants count nicely if on mobile.
+                    if (isCompact) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .background(Color(0xFFEEF2FF), RoundedCornerShape(12.dp))
+                                .clickable { showParticipantsMobile = true }
+                                .padding(horizontal = 16.dp, vertical = 10.dp)
+                        ) {
+                            Icon(Icons.Default.Group, contentDescription = "Katılımcılar", tint = Color(0xFF6366F1), modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("${selectedStudentIds.size} Katılımcı", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF6366F1))
                         }
                     } else {
-                        IconButton(onClick = { /* TODO go back */ }) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Geri", tint = Color(0xFF64748B))
-                        }
-                        if (!isCompact) {
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Column {
-                                Text("ŞANSLI ÖĞRENCİ", fontWeight = FontWeight.Black, fontSize = 16.sp, color = Color(0xFF0F172A))
-                                Text("Derse katılımı artırmak için eğlenceli bir yöntem seçin.", fontSize = 12.sp, color = Color(0xFF94A3B8))
-                            }
-                        } else {
-                            Text("ŞANSLI ÖĞRENCİ", fontWeight = FontWeight.Black, fontSize = 16.sp, color = Color(0xFF0F172A), modifier = Modifier.padding(start = 8.dp))
-                        }
+                        Text("Eğlenceli bir yöntem seçin", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color(0xFF64748B))
                     }
                 }
                 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (isCompact) {
-                        IconButton(onClick = { showParticipantsMobile = true }, modifier = Modifier.background(Color(0xFFEEF2FF), CircleShape).padding(horizontal = 12.dp, vertical = 8.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Group, contentDescription = "Katılımcılar", tint = Color(0xFF6366F1), modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("${selectedStudentIds.size}", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF6366F1))
-                            }
+                    if (isCompact && selectedGame != null) {
+                        // If we are in a game on mobile, show a small participants button on the right
+                        IconButton(onClick = { showParticipantsMobile = true }, modifier = Modifier.background(Color(0xFFEEF2FF), CircleShape).size(36.dp)) {
+                            Icon(Icons.Default.Group, contentDescription = "Katılımcılar", tint = Color(0xFF6366F1), modifier = Modifier.size(18.dp))
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                     }
 
                     Row(
                         modifier = Modifier
-                            .background(Color(0xFFFFFBEB), RoundedCornerShape(20.dp))
-                            .border(1.dp, Color(0xFFFEF3C7), RoundedCornerShape(20.dp))
-                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                            .background(Color(0xFFFFFBEB), RoundedCornerShape(24.dp))
+                            .border(1.dp, Color(0xFFFEF3C7), RoundedCornerShape(24.dp))
+                            .padding(end = 6.dp), // padding adjusted for the switch
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        if (!isCompact) {
-                            Icon(Icons.Default.AccessTime, contentDescription = null, tint = Color(0xFFD97706), modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("GÜN BOYU", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFFD97706))
-                            Spacer(modifier = Modifier.width(8.dp))
-                        } else {
-                            Text("G. BOYU", fontWeight = FontWeight.Bold, fontSize = 10.sp, color = Color(0xFFD97706), modifier = Modifier.padding(end = 4.dp))
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.AccessTime, contentDescription = null, tint = Color(0xFFD97706), modifier = Modifier.size(if (isCompact) 16.dp else 20.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(if (isCompact) "G. BOYU" else "GÜN BOYU", fontWeight = FontWeight.Bold, fontSize = if (isCompact) 11.sp else 13.sp, color = Color(0xFFD97706))
                         }
                         Switch(
                             checked = isAllDayMode,
@@ -330,8 +330,8 @@ fun LuckyStudentTab(userData: UserData) {
                     }
                     if (!isCompact) {
                         Spacer(modifier = Modifier.width(16.dp))
-                        IconButton(onClick = {}, modifier = Modifier.background(Color(0xFFF1F5F9), CircleShape).size(36.dp)) {
-                            Icon(Icons.Default.VolumeUp, contentDescription = "Ses", tint = Color(0xFF64748B), modifier = Modifier.size(18.dp))
+                        IconButton(onClick = {}, modifier = Modifier.background(Color(0xFFF1F5F9), CircleShape).size(40.dp)) {
+                            Icon(Icons.Default.VolumeUp, contentDescription = "Ses", tint = Color(0xFF64748B), modifier = Modifier.size(20.dp))
                         }
                     }
                 }
@@ -343,7 +343,7 @@ fun LuckyStudentTab(userData: UserData) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.White, RoundedCornerShape(12.dp))
+                    .background(Color.Transparent)
             ) {
                 if (selectedGame == null) {
                     // Games Grid
@@ -360,31 +360,41 @@ fun LuckyStudentTab(userData: UserData) {
                     )
                     
                     LazyVerticalGrid(
-                        columns = if (isCompact) GridCells.Fixed(2) else GridCells.Adaptive(minSize = 160.dp),
+                        columns = if (isCompact) GridCells.Fixed(1) else GridCells.Adaptive(minSize = 240.dp),
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(32.dp),
-                        modifier = Modifier.padding(16.dp)
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.padding(vertical = 8.dp)
                     ) {
                         items(games) { game ->
-                            Row(
+                            Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable { selectedGame = game.first }
-                                    .padding(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .clickable { selectedGame = game.first },
+                                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                                shape = RoundedCornerShape(20.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color.White)
                             ) {
-                                Box(
-                                    modifier = Modifier.size(if (isCompact) 48.dp else 56.dp).background(Color.Transparent),
-                                    contentAlignment = Alignment.Center
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Icon(game.third.first, contentDescription = null, tint = game.third.second, modifier = Modifier.size(if (isCompact) 32.dp else 36.dp))
-                                }
-                                Spacer(modifier = Modifier.width(16.dp))
-                                Column {
-                                    Text(game.first, fontWeight = FontWeight.Black, fontSize = if (isCompact) 12.sp else 14.sp, color = Color(0xFF0F172A), maxLines = 2)
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text("Hemen", fontSize = if (isCompact) 10.sp else 12.sp, color = Color(0xFF94A3B8))
-                                    Text("başla!", fontSize = if (isCompact) 10.sp else 12.sp, color = Color(0xFF94A3B8))
+                                    Box(
+                                        modifier = Modifier
+                                            .size(if (isCompact) 48.dp else 56.dp)
+                                            .background(game.third.second.copy(alpha = 0.15f), CircleShape),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(game.third.first, contentDescription = null, tint = game.third.second, modifier = Modifier.size(if (isCompact) 24.dp else 28.dp))
+                                    }
+                                    Spacer(modifier = Modifier.width(16.dp))
+                                    Column {
+                                        Text(game.first, fontWeight = FontWeight.Black, fontSize = if (isCompact) 14.sp else 16.sp, color = Color(0xFF1E293B), maxLines = 1)
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(game.second, fontSize = if (isCompact) 12.sp else 14.sp, color = Color(0xFF64748B))
+                                    }
                                 }
                             }
                         }
