@@ -87,6 +87,13 @@ fun StudentsTab(
         studentMonth == currentMonth
     }
 
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+    LaunchedEffect(filteredStudents) {
+        if (filteredStudents.isNotEmpty()) {
+            listState.scrollToItem(0)
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -309,6 +316,7 @@ fun StudentsTab(
             }
         } else {
             LazyColumn(
+                state = listState,
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {

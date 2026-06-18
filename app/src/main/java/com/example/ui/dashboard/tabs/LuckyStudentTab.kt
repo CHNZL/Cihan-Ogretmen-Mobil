@@ -254,26 +254,13 @@ fun LuckyStudentTab(userData: UserData) {
         Column(
             modifier = Modifier.weight(1f).fillMaxHeight().padding(16.dp)
         ) {
-            // Top Bar
-            Row(
-                modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(12.dp)).padding(if (isCompact) 12.dp else 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                if (selectedGame != null) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = { selectedGame = null }, modifier = Modifier.size(36.dp)) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Geri", tint = Color(0xFF64748B))
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Column {
-                            Text(selectedGame?.uppercase() ?: "", fontWeight = FontWeight.Black, fontSize = 16.sp, color = Color(0xFF0F172A))
-                            if (!isCompact) {
-                                Text("Derse katılımı artırmak için eğlenceli bir yöntem", fontSize = 12.sp, color = Color(0xFF94A3B8))
-                            }
-                        }
-                    }
-                } else {
+            if (selectedGame == null) {
+                // Top Bar
+                Row(
+                    modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(12.dp)).padding(if (isCompact) 12.dp else 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
                     // Empty space or a simple subtitle on the left, but for a balanced look, we can just show the Participants count nicely if on mobile.
                     if (isCompact) {
                         Row(
@@ -290,55 +277,47 @@ fun LuckyStudentTab(userData: UserData) {
                     } else {
                         Text("Eğlenceli bir yöntem seçin", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color(0xFF64748B))
                     }
-                }
-                
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (isCompact && selectedGame != null) {
-                        // If we are in a game on mobile, show a small participants button on the right
-                        IconButton(onClick = { showParticipantsMobile = true }, modifier = Modifier.background(Color(0xFFEEF2FF), CircleShape).size(36.dp)) {
-                            Icon(Icons.Default.Group, contentDescription = "Katılımcılar", tint = Color(0xFF6366F1), modifier = Modifier.size(18.dp))
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
-                    }
-
-                    Row(
-                        modifier = Modifier
-                            .background(Color(0xFFFFFBEB), RoundedCornerShape(24.dp))
-                            .border(1.dp, Color(0xFFFEF3C7), RoundedCornerShape(24.dp))
-                            .padding(end = 6.dp), // padding adjusted for the switch
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            modifier = Modifier
+                                .background(Color(0xFFFFFBEB), RoundedCornerShape(24.dp))
+                                .border(1.dp, Color(0xFFFEF3C7), RoundedCornerShape(24.dp))
+                                .padding(end = 6.dp), // padding adjusted for the switch
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.AccessTime, contentDescription = null, tint = Color(0xFFD97706), modifier = Modifier.size(if (isCompact) 16.dp else 20.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(if (isCompact) "G. BOYU" else "GÜN BOYU", fontWeight = FontWeight.Bold, fontSize = if (isCompact) 11.sp else 13.sp, color = Color(0xFFD97706))
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.AccessTime, contentDescription = null, tint = Color(0xFFD97706), modifier = Modifier.size(if (isCompact) 16.dp else 20.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(if (isCompact) "G. BOYU" else "GÜN BOYU", fontWeight = FontWeight.Bold, fontSize = if (isCompact) 11.sp else 13.sp, color = Color(0xFFD97706))
+                            }
+                            Switch(
+                                checked = isAllDayMode,
+                                onCheckedChange = { 
+                                    isAllDayMode = it
+                                    if (!it) {
+                                        selectedStudentIds.clear()
+                                        selectedStudentIds.addAll(students.map { s -> s.id })
+                                    }
+                                    saveConfig(isAllDayMode, selectedStudentIds.toList())
+                                },
+                                modifier = Modifier.height(24.dp)
+                            )
                         }
-                        Switch(
-                            checked = isAllDayMode,
-                            onCheckedChange = { 
-                                isAllDayMode = it
-                                if (!it) {
-                                    selectedStudentIds.clear()
-                                    selectedStudentIds.addAll(students.map { s -> s.id })
-                                }
-                                saveConfig(isAllDayMode, selectedStudentIds.toList())
-                            },
-                            modifier = Modifier.height(24.dp)
-                        )
-                    }
-                    if (!isCompact) {
-                        Spacer(modifier = Modifier.width(16.dp))
-                        IconButton(onClick = {}, modifier = Modifier.background(Color(0xFFF1F5F9), CircleShape).size(40.dp)) {
-                            Icon(Icons.Default.VolumeUp, contentDescription = "Ses", tint = Color(0xFF64748B), modifier = Modifier.size(20.dp))
+                        if (!isCompact) {
+                            Spacer(modifier = Modifier.width(16.dp))
+                            IconButton(onClick = {}, modifier = Modifier.background(Color(0xFFF1F5F9), CircleShape).size(40.dp)) {
+                                Icon(Icons.Default.VolumeUp, contentDescription = "Ses", tint = Color(0xFF64748B), modifier = Modifier.size(20.dp))
+                            }
                         }
                     }
                 }
+                
+                Spacer(modifier = Modifier.height(16.dp))
             }
-            
-            Spacer(modifier = Modifier.height(16.dp))
             
             // Content
             Box(
@@ -361,26 +340,30 @@ fun LuckyStudentTab(userData: UserData) {
                 Column(modifier = Modifier.fillMaxSize()) {
                     if (selectedGame != null) {
                         // Horizontal mode switcher at the top
-                        LazyRow(
+                        @OptIn(ExperimentalLayoutApi::class)
+                        FlowRow(
                             modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            items(games) { game ->
+                            games.forEach { game ->
                                 val isSelected = selectedGame == game.first
                                 Card(
                                     modifier = Modifier
-                                        .height(48.dp)
+                                        .height(36.dp)
                                         .clickable { selectedGame = game.first },
                                     colors = CardDefaults.cardColors(containerColor = if (isSelected) game.third.second else Color(0xFFF1F5F9)),
-                                    shape = RoundedCornerShape(24.dp)
+                                    shape = RoundedCornerShape(18.dp)
                                 ) {
                                     Row(
-                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                                        modifier = Modifier.padding(horizontal = if (isSelected) 12.dp else 8.dp, vertical = 8.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Icon(game.third.first, contentDescription = null, tint = if (isSelected) Color.White else Color(0xFF64748B), modifier = Modifier.size(20.dp))
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(game.first, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = if (isSelected) Color.White else Color(0xFF475569))
+                                        Icon(game.third.first, contentDescription = game.first, tint = if (isSelected) Color.White else Color(0xFF64748B), modifier = Modifier.size(16.dp))
+                                        if (isSelected || configuration.screenWidthDp > 600) {
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(game.first, fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.White)
+                                        }
                                     }
                                 }
                             }

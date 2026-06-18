@@ -250,6 +250,37 @@ fun GroupCreatorTab(
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text("Yeni Plan", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                             }
+                            
+                            // LANDSCAPE ONLY: Move shuffle and zoom buttons here
+                            if (isLandscape && !manualModeActive) {
+                                Button(
+                                    onClick = { handleGenerateGroups() },
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surface, contentColor = MaterialTheme.colorScheme.onSurface),
+                                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 1.dp),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                                    shape = RoundedCornerShape(10.dp),
+                                    contentPadding = PaddingValues(horizontal = 8.dp),
+                                    modifier = Modifier.height(38.dp)
+                                ) {
+                                    Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Karıştır", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
+                                
+                                Button(
+                                    onClick = { isZoomedIn = !isZoomedIn },
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer, contentColor = MaterialTheme.colorScheme.onPrimaryContainer),
+                                    shape = RoundedCornerShape(10.dp),
+                                    contentPadding = PaddingValues(horizontal = 8.dp),
+                                    modifier = Modifier.height(38.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = if (isZoomedIn) Icons.Default.ZoomOut else Icons.Default.ZoomIn, 
+                                        contentDescription = "Büyüteç",
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                }
+                            }
                         }
 
                         Button(
@@ -612,38 +643,40 @@ fun GroupCreatorTab(
                 // AUTOMATIC GENERATION RESULT VIEW (Grid columns) - properly weights in layout tree
                 Column(modifier = Modifier.fillMaxWidth().weight(1f)) {
                     // Reshuffle action Bar & Zoom Button
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Button(
-                            onClick = { handleGenerateGroups() },
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surface, contentColor = MaterialTheme.colorScheme.onSurface),
-                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 1.dp),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                            shape = RoundedCornerShape(8.dp),
-                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                    if (!isLandscape) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Grupları Yeniden Karıştır", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        }
+                            Button(
+                                onClick = { handleGenerateGroups() },
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surface, contentColor = MaterialTheme.colorScheme.onSurface),
+                                elevation = ButtonDefaults.buttonElevation(defaultElevation = 1.dp),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                            ) {
+                                Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Grupları Yeniden Karıştır", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
 
-                        FloatingActionButton(
-                            onClick = { isZoomedIn = !isZoomedIn },
-                            modifier = Modifier.size(40.dp),
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            shape = CircleShape
-                        ) {
-                            Icon(
-                                imageVector = if (isZoomedIn) Icons.Default.ZoomOut else Icons.Default.ZoomIn, 
-                                contentDescription = "Büyüteç",
-                                modifier = Modifier.size(20.dp),
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
+                            FloatingActionButton(
+                                onClick = { isZoomedIn = !isZoomedIn },
+                                modifier = Modifier.size(40.dp),
+                                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                shape = CircleShape
+                            ) {
+                                Icon(
+                                    imageVector = if (isZoomedIn) Icons.Default.ZoomOut else Icons.Default.ZoomIn, 
+                                    contentDescription = "Büyüteç",
+                                    modifier = Modifier.size(20.dp),
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
                         }
                     }
 
