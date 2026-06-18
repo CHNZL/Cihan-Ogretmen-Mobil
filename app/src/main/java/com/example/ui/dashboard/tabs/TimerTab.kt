@@ -3,6 +3,7 @@ package com.example.ui.dashboard.tabs
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -50,6 +51,28 @@ fun TimerTab(userData: UserData) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val firestoreRepository = remember { com.example.data.FirestoreRepository() }
+
+    val baseColors = listOf(
+        Color(0xFFFFFFFF), // 0: Default white when not running or 0 mins
+        Color(0xFFF0FDF4), // 1: Greenish
+        Color(0xFFFEFCE8), // 2: Yellowish
+        Color(0xFFFFF1F2), // 3: Reddish
+        Color(0xFFF5F3FF), // 4: Purpleish
+        Color(0xFFF0F9FF), // 5: Blueish
+        Color(0xFFFFF7ED)  // 6: Orangeish
+    )
+    
+    val currentMinute = (countdownRemainingSeconds / 60).toInt()
+    val targetColor = if (isCountdownMode) {
+        if (countdownRemainingSeconds > 0) baseColors[(currentMinute % (baseColors.size - 1)) + 1] else baseColors[0]
+    } else {
+        baseColors[0]
+    }
+    
+    val animatedBgColor by animateColorAsState(
+        targetValue = targetColor,
+        animationSpec = tween(1500)
+    )
 
     // Initialize sound if needed
     LaunchedEffect(Unit) {
@@ -124,157 +147,116 @@ fun TimerTab(userData: UserData) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            // -- HEADER --
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Left Close Button (X decoration representing the ui mock)
-                    IconButton(
-                        onClick = {
-                            if (soundEnabled) SoundHelper.playTick()
-                        },
-                        modifier = Modifier
-                            .background(Color(0xFFF1F5F9), RoundedCornerShape(12.dp))
-                            .size(44.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Kapat",
-                            tint = Color(0xFF64748B)
-                        )
-                    }
-
-                    // Middle Title / Subtitle
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "ZAMANLAYICI",
-                            fontWeight = FontWeight.Black,
-                            fontSize = 20.sp,
-                            color = Color(0xFF1E293B),
-                            letterSpacing = 1.5.sp
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "Ders ve etkinlik yönetimi",
-                            fontSize = 12.sp,
-                            color = Color(0xFF94A3B8),
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-
-                    // Right Audio Toggle Button
-                    IconButton(
-                        onClick = {
-                            soundEnabled = !soundEnabled
-                            SoundHelper.playTick()
-                        },
-                        modifier = Modifier
-                            .background(
-                                if (soundEnabled) Color(0xFFEEF2FF) else Color(0xFFF1F5F9),
-                                RoundedCornerShape(12.dp)
-                            )
-                            .size(44.dp)
-                    ) {
-                        Icon(
-                            imageVector = if (soundEnabled) Icons.Default.VolumeUp else Icons.Default.VolumeOff,
-                            contentDescription = "Ses Aç/Kapat",
-                            tint = if (soundEnabled) Color(0xFF6366F1) else Color(0xFF94A3B8)
-                        )
-                    }
-                }
-            }
-
             // -- MAIN WORKSPACE --
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
                 shape = RoundedCornerShape(32.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                colors = CardDefaults.cardColors(containerColor = animatedBgColor),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(28.dp),
+                        .padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.SpaceBetween
                 ) {
-                    // 1. Selector Tab Bar (GERI SAYIM vs KRONOMETRE)
+                    // 1. Selector Tab Bar (GERI SAYIM vs KRONOMETRE) and volume control
                     Row(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(Color(0xFFF1F5F9))
-                            .padding(4.dp)
-                            .fillMaxWidth(0.85f),
-                        horizontalArrangement = Arrangement.SpaceEvenly
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Box(
+                        Row(
                             modifier = Modifier
                                 .weight(1f)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(if (isCountdownMode) Color.White else Color.Transparent)
-                                .clickable {
-                                    isCountdownMode = true
-                                    if (soundEnabled) SoundHelper.playTick()
-                                    firestoreRepository.updateRemoteControlState(
-                                        teacherUid = userData.userId,
-                                        activeTab = "timer",
-                                        timerCommand = "TOGGLE_MODE",
-                                        timerMode = "countdown",
-                                        duration = countdownDurationTotalSeconds,
-                                        remaining = countdownRemainingSeconds
-                                    )
-                                }
-                                .padding(vertical = 12.dp),
-                            contentAlignment = Alignment.Center
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(Color(0xFFF8FAFC))
+                                .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(20.dp))
+                                .padding(4.dp),
+                            horizontalArrangement = Arrangement.SpaceEvenly
                         ) {
-                            Text(
-                                text = "GERİ SAYIM",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 13.sp,
-                                color = if (isCountdownMode) Color(0xFF1E293B) else Color(0xFF64748B)
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(if (isCountdownMode) Color.White else Color.Transparent)
+                                    .clickable {
+                                        isCountdownMode = true
+                                        if (soundEnabled) SoundHelper.playTick()
+                                        firestoreRepository.updateRemoteControlState(
+                                            teacherUid = userData.userId,
+                                            activeTab = "timer",
+                                            timerCommand = "TOGGLE_MODE",
+                                            timerMode = "countdown",
+                                            duration = countdownDurationTotalSeconds,
+                                            remaining = countdownRemainingSeconds
+                                        )
+                                    }
+                                    .padding(vertical = 12.dp)
+                                    .then(if (isCountdownMode) Modifier.shadow(2.dp, RoundedCornerShape(16.dp), clip = false) else Modifier),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "GERİ SAYIM",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp,
+                                    color = if (isCountdownMode) Color(0xFF1E293B) else Color(0xFF64748B)
+                                )
+                            }
+    
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(if (!isCountdownMode) Color.White else Color.Transparent)
+                                    .clickable {
+                                        isCountdownMode = false
+                                        if (soundEnabled) SoundHelper.playTick()
+                                        firestoreRepository.updateRemoteControlState(
+                                            teacherUid = userData.userId,
+                                            activeTab = "timer",
+                                            timerCommand = "TOGGLE_MODE",
+                                            timerMode = "stopwatch",
+                                            duration = 0L,
+                                            remaining = stopwatchElapsedSeconds
+                                        )
+                                    }
+                                    .padding(vertical = 12.dp)
+                                    .then(if (!isCountdownMode) Modifier.shadow(2.dp, RoundedCornerShape(16.dp), clip = false) else Modifier),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "KRONOMETRE",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp,
+                                    color = if (!isCountdownMode) Color(0xFF1E293B) else Color(0xFF64748B)
+                                )
+                            }
                         }
-
-                        Box(
+                        
+                        Spacer(modifier = Modifier.width(16.dp))
+                        
+                        IconButton(
+                            onClick = {
+                                soundEnabled = !soundEnabled
+                                SoundHelper.playTick()
+                            },
                             modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(if (!isCountdownMode) Color.White else Color.Transparent)
-                                .clickable {
-                                    isCountdownMode = false
-                                    if (soundEnabled) SoundHelper.playTick()
-                                    firestoreRepository.updateRemoteControlState(
-                                        teacherUid = userData.userId,
-                                        activeTab = "timer",
-                                        timerCommand = "TOGGLE_MODE",
-                                        timerMode = "stopwatch",
-                                        duration = 0L,
-                                        remaining = stopwatchElapsedSeconds
-                                    )
-                                }
-                                .padding(vertical = 12.dp),
-                            contentAlignment = Alignment.Center
+                                .background(
+                                    if (soundEnabled) Color(0xFFEEF2FF) else Color(0xFFF1F5F9),
+                                    CircleShape
+                                )
+                                .size(48.dp)
                         ) {
-                            Text(
-                                text = "KRONOMETRE",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 13.sp,
-                                color = if (!isCountdownMode) Color(0xFF1E293B) else Color(0xFF64748B)
+                            Icon(
+                                imageVector = if (soundEnabled) Icons.Default.VolumeUp else Icons.Default.VolumeOff,
+                                contentDescription = "Ses Aç/Kapat",
+                                tint = if (soundEnabled) Color(0xFF6366F1) else Color(0xFF94A3B8),
+                                modifier = Modifier.size(24.dp)
                             )
                         }
                     }
@@ -446,44 +428,44 @@ fun TimerTab(userData: UserData) {
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            val intervals = listOf(
-                                "+1 DK" to 60L,
-                                "+5 DK" to 300L,
-                                "+10 DK" to 600L,
-                                "+15 DK" to 900L,
-                                "+30 DK" to 1800L
-                            )
+                                val intervals = listOf(
+                                    "1 dk" to 60L,
+                                    "2 dk" to 120L,
+                                    "3 dk" to 180L,
+                                    "5 dk" to 300L,
+                                    "10 dk" to 600L
+                                )
 
-                            intervals.forEach { pair ->
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(Color(0xFFEEF2FF))
-                                        .clickable {
-                                            if (soundEnabled) SoundHelper.playCoin()
-                                            // Add to duration and remaining seconds
-                                            countdownDurationTotalSeconds = (countdownDurationTotalSeconds + pair.second).coerceAtMost(35999L)
-                                            countdownRemainingSeconds = (countdownRemainingSeconds + pair.second).coerceAtMost(35999L)
-                                            firestoreRepository.updateRemoteControlState(
-                                                teacherUid = userData.userId,
-                                                activeTab = "timer",
-                                                timerCommand = "SET_TIME",
-                                                duration = countdownDurationTotalSeconds,
-                                                remaining = countdownRemainingSeconds
-                                            )
-                                        }
-                                        .padding(vertical = 10.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = pair.first,
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF4F46E5)
-                                    )
+                                intervals.forEach { pair ->
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(Color(0xFFEEF2FF))
+                                            .clickable {
+                                                if (soundEnabled) SoundHelper.playCoin()
+                                                isCountdownRunning = false
+                                                countdownDurationTotalSeconds = pair.second
+                                                countdownRemainingSeconds = pair.second
+                                                firestoreRepository.updateRemoteControlState(
+                                                    teacherUid = userData.userId,
+                                                    activeTab = "timer",
+                                                    timerCommand = "SET_TIME",
+                                                    duration = countdownDurationTotalSeconds,
+                                                    remaining = countdownRemainingSeconds
+                                                )
+                                            }
+                                            .padding(vertical = 12.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = pair.first,
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF4F46E5)
+                                        )
+                                    }
                                 }
-                            }
                         }
                     }
                 }

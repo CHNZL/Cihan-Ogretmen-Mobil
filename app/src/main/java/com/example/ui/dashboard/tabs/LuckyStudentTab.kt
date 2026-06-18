@@ -360,7 +360,7 @@ fun LuckyStudentTab(userData: UserData) {
                     )
                     
                     LazyVerticalGrid(
-                        columns = if (isCompact) GridCells.Fixed(1) else GridCells.Adaptive(minSize = 240.dp),
+                        columns = if (isCompact) GridCells.Fixed(2) else GridCells.Adaptive(minSize = 160.dp),
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                         modifier = Modifier.padding(vertical = 8.dp)
@@ -369,32 +369,47 @@ fun LuckyStudentTab(userData: UserData) {
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .aspectRatio(1f) // Makes it a square
                                     .clip(RoundedCornerShape(20.dp))
                                     .clickable { selectedGame = game.first },
                                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                                 shape = RoundedCornerShape(20.dp),
                                 colors = CardDefaults.cardColors(containerColor = Color.White)
                             ) {
-                                Row(
+                                Column(
                                     modifier = Modifier
-                                        .fillMaxWidth()
+                                        .fillMaxSize()
                                         .padding(16.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
                                 ) {
                                     Box(
                                         modifier = Modifier
-                                            .size(if (isCompact) 48.dp else 56.dp)
+                                            .size(56.dp)
                                             .background(game.third.second.copy(alpha = 0.15f), CircleShape),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Icon(game.third.first, contentDescription = null, tint = game.third.second, modifier = Modifier.size(if (isCompact) 24.dp else 28.dp))
+                                        Icon(game.third.first, contentDescription = null, tint = game.third.second, modifier = Modifier.size(28.dp))
                                     }
-                                    Spacer(modifier = Modifier.width(16.dp))
-                                    Column {
-                                        Text(game.first, fontWeight = FontWeight.Black, fontSize = if (isCompact) 14.sp else 16.sp, color = Color(0xFF1E293B), maxLines = 1)
-                                        Spacer(modifier = Modifier.height(2.dp))
-                                        Text(game.second, fontSize = if (isCompact) 12.sp else 14.sp, color = Color(0xFF64748B))
-                                    }
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Text(
+                                        text = game.first,
+                                        fontWeight = FontWeight.Black,
+                                        fontSize = 14.sp,
+                                        color = Color(0xFF1E293B),
+                                        maxLines = 1,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        textAlign = TextAlign.Center
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = game.second,
+                                        fontSize = 11.sp,
+                                        color = Color(0xFF64748B),
+                                        textAlign = TextAlign.Center,
+                                        lineHeight = 14.sp,
+                                        maxLines = 2
+                                    )
                                 }
                             }
                         }
