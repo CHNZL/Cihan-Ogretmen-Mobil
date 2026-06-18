@@ -207,19 +207,23 @@ fun SeatingPlanTab(userData: UserData) {
             .background(MaterialTheme.colorScheme.background)
             .padding(16.dp)
     ) {
-        // Full width Generate button
-        Button(
-            onClick = { isOptionsModalOpen = true },
-            modifier = Modifier.fillMaxWidth().height(48.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Icon(Icons.Default.GridView, contentDescription = null, modifier = Modifier.size(20.dp))
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Yeni Oturma Planı Oluştur", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+        val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+        val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+        
+        // Full width Generate button (shrink in landscape)
+        if (!isLandscape) {
+            Button(
+                onClick = { isOptionsModalOpen = true },
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(Icons.Default.GridView, contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Yeni Oturma Planı Oluştur", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            }
+            Spacer(modifier = Modifier.height(12.dp))
         }
-
-        Spacer(modifier = Modifier.height(12.dp))
 
         if (isUnsavedPlan) {
             Card(
@@ -229,7 +233,7 @@ fun SeatingPlanTab(userData: UserData) {
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Row(
-                    modifier = Modifier.padding(12.dp),
+                    modifier = Modifier.padding(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
@@ -241,9 +245,10 @@ fun SeatingPlanTab(userData: UserData) {
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         "Yüklenen plan henüz kaydedilmedi! Kapatmadan önce kalıcı olması için lütfen 'KAYDET' butonuna basın.",
-                        fontSize = 12.sp,
+                        fontSize = 11.sp,
                         color = Color(0xFF991B1B),
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        maxLines = 2
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
@@ -282,13 +287,27 @@ fun SeatingPlanTab(userData: UserData) {
 
         // Action Buttons & Legend Row (Import/Export/PDF)
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            if (isLandscape) {
+                Button(
+                    onClick = { isOptionsModalOpen = true },
+                    modifier = Modifier.height(36.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                ) {
+                    Icon(Icons.Default.GridView, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Oluştur", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                }
+            }
+            
             // LEDGER (Info indicators)
             Row(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier,
                 horizontalArrangement = Arrangement.Start,
                 verticalAlignment = Alignment.CenterVertically
             ) {

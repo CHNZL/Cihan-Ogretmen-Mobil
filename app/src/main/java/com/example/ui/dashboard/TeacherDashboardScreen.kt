@@ -135,46 +135,101 @@ fun TeacherDashboardScreen(
             )
         }
     ) { paddingValues ->
-        Box(modifier = Modifier.padding(paddingValues)) {
-            when {
-                selectedRoute == "Anasayfa" -> com.example.ui.dashboard.tabs.TeacherHomeContent(
-                    userData = userData,
-                    updateViewModel = updateViewModel,
-                    onRouteSelected = { route ->
-                        onNavigate(route)
-                    }
-                )
-                selectedRoute.startsWith("Sınıf Listesi") -> {
-                    val filter = selectedRoute.substringAfter("_", "Tümü")
-                    com.example.ui.dashboard.tabs.StudentsTab(userData, PaddingValues(0.dp), filter)
-                }
-                selectedRoute == "Ders Programı" -> com.example.ui.dashboard.tabs.ScheduleTab(userData = userData)
-                selectedRoute == "Oturma Planı" -> com.example.ui.dashboard.tabs.SeatingPlanTab(userData = userData)
-                selectedRoute == "Grup Oluşturucu" -> com.example.ui.dashboard.tabs.GroupCreatorTab(userData = userData)
-                selectedRoute == "Yıldızlar Sınıfı" -> com.example.ui.dashboard.tabs.StarsClassTab(userData = userData)
-                selectedRoute == "Şanslı Öğrenci" -> com.example.ui.dashboard.tabs.LuckyStudentTab(userData = userData)
-                selectedRoute == "Zamanlayıcı" -> com.example.ui.dashboard.tabs.TimerTab(userData = userData)
-                selectedRoute == "Profil Ayarları" -> {
-                    com.example.ui.dashboard.tabs.ProfileSettingsTab(
-                        userData = userData,
-                        onBack = { goBack() }
-                    )
-                }
-                selectedRoute in listOf("Sınıf Yönetimi", "Kitaplık Yönetimi", "Ders Yönetimi", "Turnuva Yönetimi") -> {
-                    com.example.ui.dashboard.tabs.MenuCategoryTab(
-                        categoryTitle = selectedRoute,
-                        onBack = { goBack() },
-                        onRouteSelected = { route -> onNavigate(route) }
-                    )
-                }
-                else -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(
-                            text = "${selectedRoute.substringBefore("_")} Sayfası\nYapım Aşamasındadır",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        var isRefreshing by remember { mutableStateOf(false) }
+        var refreshKey by remember { mutableStateOf(0) }
+        val scope = rememberCoroutineScope()
+        
+        val disableRefresh = selectedRoute == "Şanslı Öğrenci" || selectedRoute == "Zamanlayıcı" || selectedRoute == "Oyun Modu"
+
+        Box(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
+            if (disableRefresh) {
+                key(refreshKey) {
+                    when {
+                        selectedRoute == "Anasayfa" -> com.example.ui.dashboard.tabs.TeacherHomeContent(
+                            userData = userData,
+                            updateViewModel = updateViewModel,
+                            onRouteSelected = { route -> onNavigate(route) }
                         )
+                        selectedRoute.startsWith("Sınıf Listesi") -> {
+                            val filter = selectedRoute.substringAfter("_", "Tümü")
+                            com.example.ui.dashboard.tabs.StudentsTab(userData, PaddingValues(0.dp), filter)
+                        }
+                        selectedRoute == "Ders Programı" -> com.example.ui.dashboard.tabs.ScheduleTab(userData = userData)
+                        selectedRoute == "Oturma Planı" -> com.example.ui.dashboard.tabs.SeatingPlanTab(userData = userData)
+                        selectedRoute == "Grup Oluşturucu" -> com.example.ui.dashboard.tabs.GroupCreatorTab(userData = userData)
+                        selectedRoute == "Yıldızlar Sınıfı" -> com.example.ui.dashboard.tabs.StarsClassTab(userData = userData)
+                        selectedRoute == "Şanslı Öğrenci" -> com.example.ui.dashboard.tabs.LuckyStudentTab(userData = userData)
+                        selectedRoute == "Zamanlayıcı" -> com.example.ui.dashboard.tabs.TimerTab(userData = userData)
+                        selectedRoute == "Profil Ayarları" -> {
+                            com.example.ui.dashboard.tabs.ProfileSettingsTab(
+                                userData = userData,
+                                onBack = { goBack() }
+                            )
+                        }
+                        selectedRoute in listOf("Sınıf Yönetimi", "Kitaplık Yönetimi", "Ders Yönetimi", "Turnuva Yönetimi") -> {
+                            com.example.ui.dashboard.tabs.MenuCategoryTab(
+                                categoryTitle = selectedRoute,
+                                onBack = { goBack() },
+                                onRouteSelected = { route -> onNavigate(route) }
+                            )
+                        }
+                        else -> {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Text("${selectedRoute.substringBefore("_")} Sayfası\nYapım Aşamasındadır", textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                            }
+                        }
+                    }
+                }
+            } else {
+                @OptIn(ExperimentalMaterial3Api::class)
+                androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+                    isRefreshing = isRefreshing,
+                    onRefresh = {
+                        scope.launch {
+                            isRefreshing = true
+                            kotlinx.coroutines.delay(500)
+                            refreshKey++
+                            isRefreshing = false
+                        }
+                    },
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    key(refreshKey) {
+                        when {
+                            selectedRoute == "Anasayfa" -> com.example.ui.dashboard.tabs.TeacherHomeContent(
+                                userData = userData,
+                                updateViewModel = updateViewModel,
+                                onRouteSelected = { route -> onNavigate(route) }
+                            )
+                            selectedRoute.startsWith("Sınıf Listesi") -> {
+                                val filter = selectedRoute.substringAfter("_", "Tümü")
+                                com.example.ui.dashboard.tabs.StudentsTab(userData, PaddingValues(0.dp), filter)
+                            }
+                            selectedRoute == "Ders Programı" -> com.example.ui.dashboard.tabs.ScheduleTab(userData = userData)
+                            selectedRoute == "Oturma Planı" -> com.example.ui.dashboard.tabs.SeatingPlanTab(userData = userData)
+                            selectedRoute == "Grup Oluşturucu" -> com.example.ui.dashboard.tabs.GroupCreatorTab(userData = userData)
+                            selectedRoute == "Yıldızlar Sınıfı" -> com.example.ui.dashboard.tabs.StarsClassTab(userData = userData)
+                            selectedRoute == "Şanslı Öğrenci" -> com.example.ui.dashboard.tabs.LuckyStudentTab(userData = userData)
+                            selectedRoute == "Zamanlayıcı" -> com.example.ui.dashboard.tabs.TimerTab(userData = userData)
+                            selectedRoute == "Profil Ayarları" -> {
+                                com.example.ui.dashboard.tabs.ProfileSettingsTab(
+                                    userData = userData,
+                                    onBack = { goBack() }
+                                )
+                            }
+                            selectedRoute in listOf("Sınıf Yönetimi", "Kitaplık Yönetimi", "Ders Yönetimi", "Turnuva Yönetimi") -> {
+                                com.example.ui.dashboard.tabs.MenuCategoryTab(
+                                    categoryTitle = selectedRoute,
+                                    onBack = { goBack() },
+                                    onRouteSelected = { route -> onNavigate(route) }
+                                )
+                            }
+                            else -> {
+                                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    Text("${selectedRoute.substringBefore("_")} Sayfası\nYapım Aşamasındadır", textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                                }
+                            }
+                        }
                     }
                 }
             }

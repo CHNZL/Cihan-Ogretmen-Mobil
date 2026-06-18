@@ -198,97 +198,116 @@ fun GroupCreatorTab(
             .background(MaterialTheme.colorScheme.background)
             .padding(16.dp)
     ) {
+        val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+        val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+        
         // --- TOP HEADER SECTION ---
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Column(
+        if (!isLandscape || isGroupingCreated) {
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
+                    .padding(bottom = 16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                shape = RoundedCornerShape(16.dp)
             ) {
-                if (isGroupingCreated) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(if (isLandscape) 8.dp else 16.dp)
+                ) {
+                    if (isGroupingCreated && !isLandscape) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            IconButton(
+                                onClick = { isGroupingCreated = false },
+                                modifier = Modifier.padding(end = 4.dp)
+                            ) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Geri Git", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Text("Gruplar", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
+
+                    // Header buttons row underneath (highly responsive)
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        IconButton(
-                            onClick = { isGroupingCreated = false },
-                            modifier = Modifier.padding(end = 4.dp)
-                        ) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Geri Git", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        if (isGroupingCreated) {
+                            Button(
+                                onClick = { handleNewPlan() },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF1F5F9), contentColor = Color(0xFF475569)),
+                                shape = RoundedCornerShape(10.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp),
+                                modifier = Modifier.height(38.dp)
+                            ) {
+                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Yeni Plan", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                            }
                         }
-                        Text("Gruplar", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                    }
-                    Spacer(modifier = Modifier.height(12.dp))
-                }
 
-                // Header buttons row underneath (highly responsive)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (isGroupingCreated) {
                         Button(
-                            onClick = { handleNewPlan() },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF1F5F9), contentColor = Color(0xFF475569)),
+                            onClick = { pdfExportLauncher.launch("Gruplar_Plani.pdf") },
+                            modifier = Modifier.height(38.dp),
                             shape = RoundedCornerShape(10.dp),
+                            enabled = activeGroups.isNotEmpty(),
                             contentPadding = PaddingValues(horizontal = 8.dp),
-                            modifier = Modifier.weight(1f).height(38.dp)
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEEF2FF), contentColor = Color(0xFF4F46E5))
                         ) {
-                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(14.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Yeni Plan", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                            Text("İndir", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                        Button(
+                            onClick = { handleSaveGroups() },
+                            modifier = Modifier.height(38.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            enabled = activeGroups.isNotEmpty(),
+                            contentPadding = PaddingValues(horizontal = 8.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFEF3C7), contentColor = Color(0xD9B45309))
+                        ) {
+                            Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Kaydet", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                        if (!isGroupingCreated) {
+                            Button(
+                                onClick = { showStudentSelectionDialog = true },
+                                modifier = Modifier.height(38.dp),
+                                shape = RoundedCornerShape(10.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF1F5F9), contentColor = Color(0xFF475569))
+                            ) {
+                                Icon(Icons.Default.Block, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color(0xFFEF4444))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Gelmeyen Öğrenciler (${excludedStudentIds.size})", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                            }
                         }
                     }
-
-                    Button(
-                        onClick = { handleSaveGroups() },
-                        enabled = activeGroups.isNotEmpty(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF6366F1),
-                            contentColor = Color.White,
-                            disabledContainerColor = Color(0xFFF1F5F9),
-                            disabledContentColor = Color(0xFF94A3B8)
-                        ),
-                        shape = RoundedCornerShape(10.dp),
-                        contentPadding = PaddingValues(horizontal = 8.dp),
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(38.dp)
-                            .testTag("save_group_button")
-                    ) {
-                        Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(14.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Kaydet", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    }
-
-                    Button(
-                        onClick = { pdfExportLauncher.launch("grup-dağılımı.pdf") },
-                        enabled = activeGroups.isNotEmpty(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF0EA5E9),
-                            contentColor = Color.White,
-                            disabledContainerColor = Color(0xFFF1F5F9),
-                            disabledContentColor = Color(0xFF94A3B8)
-                        ),
-                        shape = RoundedCornerShape(10.dp),
-                        contentPadding = PaddingValues(horizontal = 8.dp),
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(38.dp)
-                            .testTag("download_pdf_button")
-                    ) {
-                        Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(14.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("İndir", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    }
+                }
+            }
+        } else {
+            // In landscape mode when not generated, simply show the settings directly without a huge card header wrapper
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp).horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    onClick = { showStudentSelectionDialog = true },
+                    modifier = Modifier.height(38.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF1F5F9), contentColor = Color(0xFF475569))
+                ) {
+                    Icon(Icons.Default.Block, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color(0xFFEF4444))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Hariç Tut (${excludedStudentIds.size})", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
         }

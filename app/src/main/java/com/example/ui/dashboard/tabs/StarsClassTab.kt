@@ -61,7 +61,7 @@ val starCategoriesDetail = listOf(
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun StarsClassTab(userData: com.example.auth.UserData) {
-    var selectedTab by remember { mutableStateOf("TÜM ÖĞRENCİLER") }
+    var sortByStars by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     
     // Students Data
@@ -70,7 +70,7 @@ fun StarsClassTab(userData: com.example.auth.UserData) {
 
     LaunchedEffect(userData.userId) {
         val repo = FirestoreRepository()
-        students = repo.getStudents(userData.userId).sortedBy { it.studentNo.toIntOrNull() ?: 9999 }
+        students = repo.getStudents(userData.userId)
         isLoading = false
     }
 
@@ -78,11 +78,17 @@ fun StarsClassTab(userData: com.example.auth.UserData) {
         it.name.contains(searchQuery, true) || 
         it.surname.contains(searchQuery, true) || 
         it.studentNo.contains(searchQuery, true) 
+    }.let { list ->
+        if (sortByStars) {
+            list.sortedByDescending { it.stars }
+        } else {
+            list.sortedBy { it.studentNo.toIntOrNull() ?: 9999 }
+        }
     }
     
     // Complex Modals State
     var showStarHistoryFor: Student? by remember { mutableStateOf(null) }
-    var showGiveStarFor: Student? by remember { mutableStateOf(null) } // Direct star modal
+    var showGiveStarFor: Student? by remember { mutableStateOf(null) }
     var showDeleteAllPrompt by remember { mutableStateOf(false) }
     
     // Activity Star Flow State
@@ -113,7 +119,7 @@ fun StarsClassTab(userData: com.example.auth.UserData) {
                         java.io.OutputStreamWriter(outputStream, "UTF-8").use { writer ->
                             writer.write("Öğrenci No\tÖğrenci Adı Soyadı\tTarih\tKategori\tKaç Yıldız Aldığı\tAçıklama\n")
                             val sdf = java.text.SimpleDateFormat("dd.MM.yyyy HH:mm", java.util.Locale.getDefault())
-                            students.forEach { s ->
+                            students.sortedBy { it.studentNo.toIntOrNull() ?: 9999 }.forEach { s ->
                                 if (s.starHistory.isEmpty()) {
                                     writer.write("${s.studentNo}\t${s.name} ${s.surname}\t-\t-\t-\t-\n")
                                 } else {
@@ -189,7 +195,7 @@ fun StarsClassTab(userData: com.example.auth.UserData) {
                         )
                         repo.updateStudent(userData.userId, updated)
                     }
-                    students = repo.getStudents(userData.userId).sortedBy { it.studentNo.toIntOrNull() ?: 9999 }
+                    students = repo.getStudents(userData.userId)
                     android.widget.Toast.makeText(context, "Sınıf listesi başarıyla yüklendi.", android.widget.Toast.LENGTH_SHORT).show()
                 } catch (e: Exception) {
                     android.widget.Toast.makeText(context, "Yükleme başarısız: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
@@ -206,10 +212,14 @@ fun StarsClassTab(userData: com.example.auth.UserData) {
             .background(Color(0xFFF8FAFC))
             .padding(16.dp)
     ) {
-        // Header (Stacked for mobile support without empty space)
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+        val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+        val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+        
+        // Actions Header
+        Row(
+            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Button(
                 onClick = {
@@ -222,84 +232,45 @@ fun StarsClassTab(userData: com.example.auth.UserData) {
                     selectedStudentNames.clear()
                     showActivityStarStep1 = true
                 },
-                modifier = Modifier.fillMaxWidth().height(48.dp),
+                modifier = Modifier.height(48.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6366F1)),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(20.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("ETKİNLİKLİ YILDIZ VER", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                if (!isLandscape) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("ETKİNLİKLİ YILDIZ VER", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                }
             }
             
-            // Actions Row (Horizontally scrollable to fit mobile gracefully)
-            Row(
-                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Secondary Icons
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    IconButton(onClick = { 
-                        isLoading = true
-                        scope.launch {
-                            val repo = FirestoreRepository()
-                            students = repo.getStudents(userData.userId).sortedBy { it.studentNo.toIntOrNull() ?: 9999 }
-                            isLoading = false
-                        }
-                    }, modifier = Modifier.size(40.dp)) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Yenile", tint = Color(0xFF94A3B8), modifier = Modifier.size(24.dp))
-                    }
-                    IconButton(onClick = { 
-                        createDocumentLauncher.launch("yildizlar_sinif_listesi.xls")
-                    }, modifier = Modifier.size(40.dp)) {
-                        Icon(Icons.Default.Download, contentDescription = "İndir", tint = Color(0xFF94A3B8), modifier = Modifier.size(24.dp))
-                    }
-                    IconButton(onClick = { 
-                        openDocumentLauncher.launch(arrayOf("application/vnd.ms-excel", "text/tab-separated-values", "text/plain", "*/*"))
-                    }, modifier = Modifier.size(40.dp)) {
-                        Icon(Icons.Default.Upload, contentDescription = "Yükle", tint = Color(0xFF94A3B8), modifier = Modifier.size(24.dp))
-                    }
-                    IconButton(onClick = { showDeleteAllPrompt = true }, modifier = Modifier.size(40.dp)) {
-                        Icon(Icons.Default.Delete, contentDescription = null, tint = Color(0xFF94A3B8), modifier = Modifier.size(24.dp))
-                    }
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Action Icons
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                IconButton(onClick = { 
+                    createDocumentLauncher.launch("yildizlar_sinif_listesi.xls")
+                }, modifier = Modifier.background(Color.White, RoundedCornerShape(12.dp)).border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(12.dp)).size(48.dp)) {
+                    Icon(Icons.Default.Download, contentDescription = "İndir", tint = Color(0xFF64748B), modifier = Modifier.size(24.dp))
                 }
-                
-                // Tabs Segmented
-                Row(
-                    modifier = Modifier
-                        .background(Color(0xFFE2E8F0), RoundedCornerShape(8.dp))
-                        .padding(4.dp)
-                ) {
-                    val tabs = listOf("TÜM ÖĞRENCİLER", "LİDERLİK TABLOSU")
-                    tabs.forEach { tab ->
-                        val isSelected = selectedTab == tab
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(if (isSelected) Color.White else Color.Transparent)
-                                .clickable { selectedTab = tab }
-                                .padding(horizontal = 12.dp, vertical = 8.dp)
-                        ) {
-                            Text(
-                                tab, 
-                                fontSize = 11.sp, 
-                                fontWeight = FontWeight.Bold,
-                                color = if (isSelected) Color(0xFF6366F1) else Color(0xFF64748B)
-                            )
-                        }
-                    }
+                IconButton(onClick = { 
+                    openDocumentLauncher.launch(arrayOf("application/vnd.ms-excel", "text/tab-separated-values", "text/plain", "*/*"))
+                }, modifier = Modifier.background(Color.White, RoundedCornerShape(12.dp)).border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(12.dp)).size(48.dp)) {
+                    Icon(Icons.Default.Upload, contentDescription = "Yükle", tint = Color(0xFF64748B), modifier = Modifier.size(24.dp))
+                }
+                IconButton(onClick = { showDeleteAllPrompt = true }, modifier = Modifier.background(Color(0xFFFEF2F2), RoundedCornerShape(12.dp)).border(1.dp, Color(0xFFFECACA), RoundedCornerShape(12.dp)).size(48.dp)) {
+                    Icon(Icons.Default.Delete, contentDescription = "Sıfırla", tint = Color(0xFFEF4444), modifier = Modifier.size(24.dp))
                 }
             }
         }
         
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(if (isLandscape) 8.dp else 16.dp))
         
-        if (selectedTab == "TÜM ÖĞRENCİLER") {
-            // Search Bar
+        // Search and Sort Bar
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                modifier = Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(8.dp)),
+                modifier = Modifier.weight(1f).background(Color.White, RoundedCornerShape(8.dp)),
                 placeholder = { Text("Öğrenci ara...", color = Color(0xFF94A3B8)) },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search", tint = Color(0xFF94A3B8)) },
                 shape = RoundedCornerShape(8.dp),
@@ -309,38 +280,49 @@ fun StarsClassTab(userData: com.example.auth.UserData) {
                 ),
                 singleLine = true
             )
-            Spacer(modifier = Modifier.height(16.dp))
             
-            // Grid
-            if (isLoading) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = Color(0xFF6366F1))
-                }
-            } else if (filteredList.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Öğrenci bulunamadı", color = Color.Gray)
-                }
-            } else {
-                LazyVerticalGrid(
-                    columns = GridCells.Adaptive(minSize = 250.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    items(filteredList, key = { it.id }) { s ->
-                        StudentStarCard(
-                            number = s.studentNo,
-                            name = "${s.name} ${s.surname}",
-                            stars = s.stars,
-                            onHistoryClick = { showStarHistoryFor = s },
-                            onAddStarClick = { showGiveStarFor = s }
-                        )
-                    }
-                }
+            Spacer(modifier = Modifier.width(16.dp))
+            
+            IconButton(
+                onClick = { sortByStars = !sortByStars },
+                modifier = Modifier.background(if (sortByStars) Color(0xFFEEF2FF) else Color.White, RoundedCornerShape(12.dp)).border(1.dp, if (sortByStars) Color(0xFFC7D2FE) else Color(0xFFE2E8F0), RoundedCornerShape(12.dp)).size(52.dp)
+            ) {
+                Icon(
+                    imageVector = if (sortByStars) Icons.Default.Star else Icons.Default.SortByAlpha,
+                    contentDescription = "Sırala",
+                    tint = if (sortByStars) Color(0xFF6366F1) else Color(0xFF64748B)
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(if (isLandscape) 8.dp else 16.dp))
+        
+        // Grid
+        if (isLoading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = Color(0xFF6366F1))
+            }
+        } else if (filteredList.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("Öğrenci bulunamadı", color = Color.Gray)
             }
         } else {
-            // LİDERLİK TABLOSU
-            LeaderboardView(students)
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(minSize = 250.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                items(filteredList, key = { it.id }) { s ->
+                    StudentStarCard(
+                        number = s.studentNo,
+                        name = "${s.name} ${s.surname}",
+                        stars = s.stars,
+                        onHistoryClick = { showStarHistoryFor = s },
+                        onAddStarClick = { showGiveStarFor = s }
+                    )
+                }
+            }
         }
     }
 

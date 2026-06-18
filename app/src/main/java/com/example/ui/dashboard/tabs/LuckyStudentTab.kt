@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -345,76 +346,105 @@ fun LuckyStudentTab(userData: UserData) {
                     .fillMaxSize()
                     .background(Color.Transparent)
             ) {
-                if (selectedGame == null) {
-                    // Games Grid
-                    val games = listOf(
-                        Triple("ÇARKIFELEK", "Hemen başla!", Icons.Default.RadioButtonChecked to Color(0xFF6366F1)),
-                        Triple("ŞANSLI KUTU", "Hemen başla!", Icons.Default.Redeem to Color(0xFFF43F5E)),
-                        Triple("BALON PATLATMA", "Hemen başla!", Icons.Default.FilterVintage to Color(0xFF0EA5E9)),
-                        Triple("KURA ÇEKİMİ", "Hemen başla!", Icons.Default.ConfirmationNumber to Color(0xFFEAB308)),
-                        Triple("YARIŞ PİSTİ", "Hemen başla!", Icons.Default.Flag to Color(0xFF10B981)),
-                        Triple("ÇİÇEK BAHÇESİ", "Hemen başla!", Icons.Default.LocalFlorist to Color(0xFFEC4899)),
-                        Triple("UZAY YOLCULUĞU", "Hemen başla!", Icons.Default.RocketLaunch to Color(0xFF8B5CF6)),
-                        Triple("HAZİNE AVI", "Hemen başla!", Icons.Default.Diamond to Color(0xFFF97316)),
-                        Triple("KAHRAMAN SİNYALİ", "Hemen başla!", Icons.Default.Bolt to Color(0xFFEAB308))
-                    )
-                    
-                    LazyVerticalGrid(
-                        columns = if (isCompact) GridCells.Fixed(2) else GridCells.Adaptive(minSize = 160.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        modifier = Modifier.padding(vertical = 8.dp)
-                    ) {
-                        items(games) { game ->
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .aspectRatio(1f) // Makes it a square
-                                    .clip(RoundedCornerShape(20.dp))
-                                    .clickable { selectedGame = game.first },
-                                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                                shape = RoundedCornerShape(20.dp),
-                                colors = CardDefaults.cardColors(containerColor = Color.White)
-                            ) {
-                                Column(
+                val games = remember { listOf(
+                    Triple("ÇARKIFELEK", "Hemen başla!", Icons.Default.RadioButtonChecked to Color(0xFF6366F1)),
+                    Triple("ŞANSLI KUTU", "Hemen başla!", Icons.Default.Redeem to Color(0xFFF43F5E)),
+                    Triple("BALON PATLATMA", "Hemen başla!", Icons.Default.FilterVintage to Color(0xFF0EA5E9)),
+                    Triple("KURA ÇEKİMİ", "Hemen başla!", Icons.Default.ConfirmationNumber to Color(0xFFEAB308)),
+                    Triple("YARIŞ PİSTİ", "Hemen başla!", Icons.Default.Flag to Color(0xFF10B981)),
+                    Triple("ÇİÇEK BAHÇESİ", "Hemen başla!", Icons.Default.LocalFlorist to Color(0xFFEC4899)),
+                    Triple("UZAY YOLCULUĞU", "Hemen başla!", Icons.Default.RocketLaunch to Color(0xFF8B5CF6)),
+                    Triple("HAZİNE AVI", "Hemen başla!", Icons.Default.Diamond to Color(0xFFF97316)),
+                    Triple("KAHRAMAN SİNYALİ", "Hemen başla!", Icons.Default.Bolt to Color(0xFFEAB308))
+                ) }
+
+                Column(modifier = Modifier.fillMaxSize()) {
+                    if (selectedGame != null) {
+                        // Horizontal mode switcher at the top
+                        LazyRow(
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(games) { game ->
+                                val isSelected = selectedGame == game.first
+                                Card(
                                     modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(16.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center
+                                        .height(48.dp)
+                                        .clickable { selectedGame = game.first },
+                                    colors = CardDefaults.cardColors(containerColor = if (isSelected) game.third.second else Color(0xFFF1F5F9)),
+                                    shape = RoundedCornerShape(24.dp)
                                 ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(56.dp)
-                                            .background(game.third.second.copy(alpha = 0.15f), CircleShape),
-                                        contentAlignment = Alignment.Center
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Icon(game.third.first, contentDescription = null, tint = game.third.second, modifier = Modifier.size(28.dp))
+                                        Icon(game.third.first, contentDescription = null, tint = if (isSelected) Color.White else Color(0xFF64748B), modifier = Modifier.size(20.dp))
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(game.first, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = if (isSelected) Color.White else Color(0xFF475569))
                                     }
-                                    Spacer(modifier = Modifier.height(12.dp))
-                                    Text(
-                                        text = game.first,
-                                        fontWeight = FontWeight.Black,
-                                        fontSize = 14.sp,
-                                        color = Color(0xFF1E293B),
-                                        maxLines = 1,
-                                        modifier = Modifier.fillMaxWidth(),
-                                        textAlign = TextAlign.Center
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = game.second,
-                                        fontSize = 11.sp,
-                                        color = Color(0xFF64748B),
-                                        textAlign = TextAlign.Center,
-                                        lineHeight = 14.sp,
-                                        maxLines = 2
-                                    )
                                 }
                             }
                         }
                     }
-                } else if (selectedGame == "ÇARKIFELEK") {
+
+                    if (selectedGame == null) {
+                        // Games Grid
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(2),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            modifier = Modifier.padding(vertical = 8.dp).weight(1f)
+                        ) {
+                            items(games) { game ->
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .aspectRatio(1f) // Makes it a square
+                                        .clip(RoundedCornerShape(20.dp))
+                                        .clickable { selectedGame = game.first },
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                                    shape = RoundedCornerShape(20.dp),
+                                    colors = CardDefaults.cardColors(containerColor = game.third.second.copy(alpha = 0.1f))
+                                ) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .padding(16.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(56.dp)
+                                                .background(game.third.second.copy(alpha = 0.2f), CircleShape),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(game.third.first, contentDescription = null, tint = game.third.second, modifier = Modifier.size(28.dp))
+                                        }
+                                        Spacer(modifier = Modifier.height(12.dp))
+                                        Text(
+                                            text = game.first,
+                                            fontWeight = FontWeight.Black,
+                                            fontSize = 14.sp,
+                                            color = game.third.second,
+                                            maxLines = 1,
+                                            modifier = Modifier.fillMaxWidth(),
+                                            textAlign = TextAlign.Center
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = game.second,
+                                            fontSize = 11.sp,
+                                            color = game.third.second.copy(alpha = 0.7f),
+                                            textAlign = TextAlign.Center,
+                                            lineHeight = 14.sp,
+                                            maxLines = 2
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    } else if (selectedGame == "ÇARKIFELEK") {
                     WheelOfFortuneView(
                         students = students.filter { selectedStudentIds.contains(it.id) },
                         onWinnerSelected = { winner ->
@@ -493,6 +523,7 @@ fun LuckyStudentTab(userData: UserData) {
                         Text("$selectedGame çok yakında!", fontWeight = FontWeight.Bold, color = Color(0xFF64748B))
                     }
                 }
+                } // End of Column wrapper block
             }
         }
         
