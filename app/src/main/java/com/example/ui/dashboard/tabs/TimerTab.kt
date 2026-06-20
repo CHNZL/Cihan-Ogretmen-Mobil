@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -20,6 +21,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -51,6 +53,8 @@ fun TimerTab(userData: UserData) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val firestoreRepository = remember { com.example.data.FirestoreRepository() }
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
 
     val baseColors = listOf(
         Color(0xFFFFFFFF), // 0: Default white when not running or 0 mins
@@ -158,10 +162,11 @@ fun TimerTab(userData: UserData) {
             ) {
                 Column(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
+                        .fillMaxWidth()
+                        .padding(if (isLandscape) 12.dp else 24.dp)
+                        .then(if (isLandscape) Modifier.verticalScroll(androidx.compose.foundation.rememberScrollState()) else Modifier.fillMaxHeight()),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.SpaceBetween
+                    verticalArrangement = if (isLandscape) Arrangement.spacedBy(16.dp) else Arrangement.SpaceBetween
                 ) {
                     // 1. Selector Tab Bar (GERI SAYIM vs KRONOMETRE) and volume control
                     Row(
@@ -264,8 +269,8 @@ fun TimerTab(userData: UserData) {
                     // 2. Large Time Display with dynamic progress animation
                     Box(
                         modifier = Modifier
-                            .size(240.dp)
-                            .padding(16.dp),
+                            .then(if (isLandscape) Modifier.heightIn(min = 150.dp) else Modifier.weight(1f))
+                            .padding(vertical = if (isLandscape) 4.dp else 16.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         // Large Display Text
