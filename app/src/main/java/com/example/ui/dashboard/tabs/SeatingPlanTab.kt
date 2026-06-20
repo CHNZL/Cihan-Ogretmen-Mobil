@@ -453,10 +453,10 @@ fun SeatingPlanTab(userData: UserData) {
                         val defaultScrollState = rememberScrollState()
                         val horizontalScrollState = rememberScrollState()
                         
-                        val baseModifier = if (isZoomedIn || isLandscape) {
+                        val baseModifier = if (isZoomedIn) {
                             Modifier
                                 .fillMaxSize()
-                                .padding(if (isZoomedIn) 24.dp else 8.dp)
+                                .padding(24.dp)
                                 .verticalScroll(defaultScrollState)
                                 .horizontalScroll(horizontalScrollState)
                         } else {
@@ -474,7 +474,7 @@ fun SeatingPlanTab(userData: UserData) {
                             for (groupIdx in 0 until seatingConfig.groupCount) {
                                 val rowsInGroup = seatingConfig.rowsPerGroup.getOrElse(groupIdx) { 5 }.coerceAtLeast(1)
                                 
-                                val groupModifier = if (isZoomedIn || isLandscape) Modifier.wrapContentWidth() else Modifier.weight(1f)
+                                val groupModifier = if (isZoomedIn) Modifier.wrapContentWidth() else Modifier.weight(1f)
                                 
                                 Column(
                                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -523,8 +523,12 @@ fun SeatingPlanTab(userData: UserData) {
                                                     else -> MaterialTheme.colorScheme.primary
                                                 }
                                                 
-                                                val seatModifier = if (isZoomedIn) Modifier.size(width = 100.dp, height = 100.dp) else {
-                                                    if (isLandscape) Modifier.size(width = 50.dp, height = 50.dp) else Modifier.weight(1f).aspectRatio(1f)
+                                                val seatModifier = if (isZoomedIn) {
+                                                    Modifier.size(width = 100.dp, height = 100.dp)
+                                                } else if (isLandscape) {
+                                                    Modifier.height(50.dp).weight(1f) // in landscape, weight 1 works better if width is constrained, but if it has aspectRatio, it gets too tall. Limiting height works.
+                                                } else {
+                                                    Modifier.weight(1f).aspectRatio(1f)
                                                 }
                                                 
                                                 Card(

@@ -342,27 +342,28 @@ fun LuckyStudentTab(userData: UserData) {
                         // Horizontal mode switcher at the top
                         @OptIn(ExperimentalLayoutApi::class)
                         FlowRow(
-                            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             games.forEach { game ->
                                 val isSelected = selectedGame == game.first
                                 Card(
                                     modifier = Modifier
-                                        .height(36.dp)
+                                        .padding(horizontal = 3.dp)
+                                        .height(32.dp)
                                         .clickable { selectedGame = game.first },
                                     colors = CardDefaults.cardColors(containerColor = if (isSelected) game.third.second else Color(0xFFF1F5F9)),
-                                    shape = RoundedCornerShape(18.dp)
+                                    shape = RoundedCornerShape(16.dp)
                                 ) {
                                     Row(
-                                        modifier = Modifier.padding(horizontal = if (isSelected) 12.dp else 8.dp, vertical = 8.dp),
+                                        modifier = Modifier.padding(horizontal = if (isSelected) 10.dp else 8.dp, vertical = 6.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Icon(game.third.first, contentDescription = game.first, tint = if (isSelected) Color.White else Color(0xFF64748B), modifier = Modifier.size(16.dp))
+                                        Icon(game.third.first, contentDescription = game.first, tint = if (isSelected) Color.White else Color(0xFF94A3B8), modifier = Modifier.size(16.dp))
                                         if (isSelected || configuration.screenWidthDp > 600) {
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Text(game.first, fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.White)
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(game.first, fontWeight = FontWeight.Bold, fontSize = 10.sp, color = if (isSelected) Color.White else Color(0xFF64748B))
                                         }
                                     }
                                 }

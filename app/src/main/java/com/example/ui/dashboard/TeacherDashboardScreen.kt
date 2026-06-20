@@ -160,6 +160,7 @@ fun TeacherDashboardScreen(
                         selectedRoute == "Yıldızlar Sınıfı" -> com.example.ui.dashboard.tabs.StarsClassTab(userData = userData)
                         selectedRoute == "Şanslı Öğrenci" -> com.example.ui.dashboard.tabs.LuckyStudentTab(userData = userData)
                         selectedRoute == "Zamanlayıcı" -> com.example.ui.dashboard.tabs.TimerTab(userData = userData)
+                        selectedRoute == "Duyurular" -> com.example.ui.dashboard.tabs.AnnouncementsTab(userData = userData)
                         selectedRoute == "Profil Ayarları" -> {
                             com.example.ui.dashboard.tabs.ProfileSettingsTab(
                                 userData = userData,

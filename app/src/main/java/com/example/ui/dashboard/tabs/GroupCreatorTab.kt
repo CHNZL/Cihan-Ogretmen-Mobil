@@ -216,22 +216,6 @@ fun GroupCreatorTab(
                         .fillMaxWidth()
                         .padding(if (isLandscape) 8.dp else 16.dp)
                 ) {
-                    if (isGroupingCreated && !isLandscape) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            IconButton(
-                                onClick = { isGroupingCreated = false },
-                                modifier = Modifier.padding(end = 4.dp)
-                            ) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Geri Git", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            Text("Gruplar", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                        }
-                        Spacer(modifier = Modifier.height(12.dp))
-                    }
-
                     // Header buttons row underneath (highly responsive)
                     Row(
                         modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
