@@ -135,12 +135,27 @@ class UpdateViewModel : ViewModel() {
             _message.value = "İndirme linki bulunamadı. Lütfen GitHub Releases alanına .apk yüklediğinizden emin olun."
             return
         }
+        
+        // Clean up old APKs to prevent accumulation
+        try {
+            val dir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
+            dir?.listFiles()?.forEach { file ->
+                if (file.name.endsWith(".apk")) {
+                    file.delete()
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
         try {
             val request = DownloadManager.Request(Uri.parse(url))
             request.setTitle("Uygulama Güncellemesi")
             request.setDescription("Yeni sürüm indiriliyor. Tamamlandığında bildirimden yükleyebilirsiniz.")
             request.setMimeType("application/vnd.android.package-archive")
-            request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "sinif-yonetimi-guncel.apk")
+            // Use the app's external files directory to keep things private and avoid polluting 
+            // the main Downloads folder. We use the same generic name to overwrite it each time.
+            request.setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, "update.apk")
             request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
             
             val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager

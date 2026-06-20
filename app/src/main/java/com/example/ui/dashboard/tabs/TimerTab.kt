@@ -160,14 +160,150 @@ fun TimerTab(userData: UserData) {
                 colors = CardDefaults.cardColors(containerColor = animatedBgColor),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(if (isLandscape) 12.dp else 24.dp)
-                        .then(if (isLandscape) Modifier.verticalScroll(androidx.compose.foundation.rememberScrollState()) else Modifier.fillMaxHeight()),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = if (isLandscape) Arrangement.spacedBy(16.dp) else Arrangement.SpaceBetween
-                ) {
+                if (isLandscape) {
+                    // LANDSCAPE MODE: Left side (Time & Mode), Right side (Controls)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        // Left side
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            // Selector
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth(0.9f)
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .background(Color(0xFFF8FAFC))
+                                    .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(20.dp))
+                                    .padding(4.dp),
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .background(if (isCountdownMode) Color.White else Color.Transparent)
+                                        .clickable {
+                                            isCountdownMode = true
+                                            if (soundEnabled) SoundHelper.playTick()
+                                            // ... repo call ...
+                                        }
+                                        .padding(vertical = 8.dp)
+                                        .then(if (isCountdownMode) Modifier.shadow(2.dp, RoundedCornerShape(16.dp), clip = false) else Modifier),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text("GERİ SAYIM", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = if (isCountdownMode) Color(0xFF1E293B) else Color(0xFF64748B))
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .background(if (!isCountdownMode) Color.White else Color.Transparent)
+                                        .clickable {
+                                            isCountdownMode = false
+                                            if (soundEnabled) SoundHelper.playTick()
+                                            // ... repo call ...
+                                        }
+                                        .padding(vertical = 8.dp)
+                                        .then(if (!isCountdownMode) Modifier.shadow(2.dp, RoundedCornerShape(16.dp), clip = false) else Modifier),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text("KRONOMETRE", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = if (!isCountdownMode) Color(0xFF1E293B) else Color(0xFF64748B))
+                                }
+                            }
+
+                            // Time Display
+                            val activeTimeText = if (isCountdownMode) formatTime(countdownRemainingSeconds) else formatTime(stopwatchElapsedSeconds)
+                            Text(
+                                text = activeTimeText,
+                                fontSize = 60.sp,
+                                fontWeight = FontWeight.Black,
+                                color = if (isCountdownMode && countdownRemainingSeconds < 10 && countdownRemainingSeconds > 0) Color(0xFFEF4444) else Color(0xFF0F172A)
+                            )
+                        }
+
+                        // Right side
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            // Sound Button
+                            IconButton(onClick = { soundEnabled = !soundEnabled }, modifier = Modifier.background(if (soundEnabled) Color(0xFFEEF2FF) else Color(0xFFF1F5F9), CircleShape).size(48.dp)) {
+                                Icon(if (soundEnabled) Icons.Default.VolumeUp else Icons.Default.VolumeOff, contentDescription = null, tint = if (soundEnabled) Color(0xFF6366F1) else Color(0xFF94A3B8))
+                            }
+                            
+                            // Play/Pause & Reset
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceAround,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // Reset
+                                IconButton(
+                                    onClick = {
+                                        if (soundEnabled) SoundHelper.playBoing()
+                                        if (isCountdownMode) {
+                                            isCountdownRunning = false
+                                            countdownRemainingSeconds = countdownDurationTotalSeconds
+                                        } else {
+                                            isStopwatchRunning = false
+                                            stopwatchElapsedSeconds = 0
+                                        }
+                                    },
+                                    modifier = Modifier.shadow(2.dp, CircleShape).background(Color.White, CircleShape).size(48.dp)
+                                ) {
+                                    Icon(Icons.Default.Refresh, contentDescription = null, tint = Color(0xFF475569))
+                                }
+
+                                // Play
+                                val isCurrentRunning = if (isCountdownMode) isCountdownRunning else isStopwatchRunning
+                                val mainColor = if (isCurrentRunning) Color(0xFFEF4444) else Color(0xFF8B5CF6)
+                                Box(
+                                    modifier = Modifier.shadow(6.dp, CircleShape).size(64.dp).background(mainColor, CircleShape).clickable {
+                                        if (soundEnabled) SoundHelper.playTick()
+                                        if (isCountdownMode) {
+                                            if (countdownRemainingSeconds == 0L) countdownRemainingSeconds = countdownDurationTotalSeconds
+                                            isCountdownRunning = !isCountdownRunning
+                                        } else {
+                                            isStopwatchRunning = !isStopwatchRunning
+                                        }
+                                    },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(if (isCurrentRunning) Icons.Default.Pause else Icons.Default.PlayArrow, contentDescription = null, tint = Color.White, modifier = Modifier.size(32.dp))
+                                }
+
+                                // Settings (Only in countdown mode)
+                                if (isCountdownMode && !isCountdownRunning) {
+                                    IconButton(
+                                        onClick = { showSettingsDialog = true },
+                                        modifier = Modifier.shadow(2.dp, CircleShape).background(Color.White, CircleShape).size(48.dp)
+                                    ) {
+                                        Icon(Icons.Default.Settings, contentDescription = null, tint = Color(0xFF475569))
+                                    }
+                                } else {
+                                    Spacer(modifier = Modifier.size(48.dp))
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp)
+                            .fillMaxHeight(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.SpaceBetween
+                    ) {
                     // 1. Selector Tab Bar (GERI SAYIM vs KRONOMETRE) and volume control
                     Row(
                         modifier = Modifier
@@ -473,7 +609,8 @@ fun TimerTab(userData: UserData) {
                                 }
                         }
                     }
-                }
+                } // End of Column
+                } // End of else
             }
         }
     }
