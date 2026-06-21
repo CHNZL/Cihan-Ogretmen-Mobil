@@ -152,8 +152,8 @@ fun TeacherHomeContent(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         // Welcome Card
         item {
@@ -175,91 +175,98 @@ fun TeacherHomeContent(
                             )
                         )
                 ) {
-                    Column(modifier = Modifier.padding(20.dp)) {
-                        // Update & Version Info
+                    Column(modifier = Modifier.padding(16.dp)) {
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Top
                         ) {
-                            Text(
-                                text = "Sürüm: ${com.example.BuildConfig.VERSION_NAME}",
-                                fontSize = 11.sp,
-                                color = Color.White.copy(alpha = 0.8f)
-                            )
-                            
-                            if (isLoading) {
-                                CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)
-                            } else {
-                                Row(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(Color.White.copy(alpha = 0.2f))
-                                        .clickable {
-                                            if (updateAvailable) {
-                                                updateViewModel.startDownload(context)
-                                            } else {
-                                                updateViewModel.checkForUpdates(silentCheckOnStartup = false)
+                            // Left side: Greeting and Date
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "$greeting, $userName 👋",
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color.White
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "Bugün $dateStr",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color.White.copy(alpha = 0.8f)
+                                )
+                            }
+
+                            // Right side: Update Status and Version
+                            Column(
+                                horizontalAlignment = Alignment.End,
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                if (isLoading) {
+                                    CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)
+                                } else {
+                                    Row(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(Color.White.copy(alpha = 0.2f))
+                                            .clickable {
+                                                if (updateAvailable) {
+                                                    updateViewModel.startDownload(context)
+                                                } else {
+                                                    updateViewModel.checkForUpdates(silentCheckOnStartup = false)
+                                                }
                                             }
-                                        }
-                                        .padding(horizontal = 12.dp, vertical = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    if (updateAvailable) {
-                                        Text(
-                                            "Güncelle",
-                                            fontSize = 11.sp,
-                                            color = Color.White,
-                                            fontWeight = FontWeight.Bold,
-                                            modifier = Modifier.padding(end = 4.dp)
-                                        )
-                                        Box {
-                                            Icon(
-                                                Icons.Default.Refresh,
-                                                contentDescription = "Güncelle",
-                                                modifier = Modifier.size(18.dp),
-                                                tint = Color.White
+                                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        if (updateAvailable) {
+                                            Text(
+                                                "Güncelle",
+                                                fontSize = 11.sp,
+                                                color = Color.White,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier.padding(end = 4.dp)
+                                            )
+                                            Box {
+                                                Icon(
+                                                    Icons.Default.Refresh,
+                                                    contentDescription = "Güncelle",
+                                                    modifier = Modifier.size(18.dp),
+                                                    tint = Color.White
+                                                )
+                                                Icon(
+                                                    Icons.Default.Star,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(8.dp).align(Alignment.TopEnd),
+                                                    tint = Color.Yellow
+                                                )
+                                            }
+                                        } else {
+                                            Text(
+                                                "Güncel",
+                                                fontSize = 11.sp,
+                                                color = Color.White.copy(alpha = 0.9f),
+                                                modifier = Modifier.padding(end = 4.dp)
                                             )
                                             Icon(
-                                                Icons.Default.Star,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(8.dp).align(Alignment.TopEnd),
-                                                tint = Color.Yellow
+                                                Icons.Default.CheckCircle,
+                                                contentDescription = "Güncellemeleri Kontrol Et",
+                                                modifier = Modifier.size(14.dp),
+                                                tint = Color.White.copy(alpha = 0.9f)
                                             )
                                         }
-                                    } else {
-                                        Text(
-                                            "Güncel",
-                                            fontSize = 11.sp,
-                                            color = Color.White.copy(alpha = 0.9f),
-                                            modifier = Modifier.padding(end = 4.dp)
-                                        )
-                                        Icon(
-                                            Icons.Default.CheckCircle,
-                                            contentDescription = "Güncellemeleri Kontrol Et",
-                                            modifier = Modifier.size(14.dp),
-                                            tint = Color.White.copy(alpha = 0.9f)
-                                        )
                                     }
                                 }
+                                Text(
+                                    text = "Sürüm: ${com.example.BuildConfig.VERSION_NAME}",
+                                    fontSize = 10.sp,
+                                    color = Color.White.copy(alpha = 0.7f),
+                                    modifier = Modifier.padding(end = 4.dp)
+                                )
                             }
                         }
 
-                        Text(
-                            text = "$greeting, $userName 👋",
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Color.White
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Bugün $dateStr",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color.White.copy(alpha = 0.8f)
-                        )
-                        Spacer(modifier = Modifier.height(20.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
                         
                         @OptIn(ExperimentalLayoutApi::class)
                         FlowRow(
@@ -271,7 +278,7 @@ fun TeacherHomeContent(
                             InfoChip(icon = Icons.Default.Groups, text = "3. Sınıf / D Şubesi")
                         }
 
-                        Spacer(modifier = Modifier.height(24.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
                         // Daily Schedule Grid
                         val columnCount = 3
                         val lessons = (1..lessonCount).map { lessonIndex ->
@@ -568,58 +575,68 @@ fun MenuCategoryGroup(
         }
         
         // Quick Actions
-        quickActions.forEachIndexed { index, action ->
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onQuickActionClick(action.first) },
-                colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-                shape = RoundedCornerShape(16.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Box(
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            quickActions.forEachIndexed { index, action ->
+                Card(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .background(brush = lightGradient)
+                        .weight(1f)
+                        .aspectRatio(1f)
+                        .clickable { onQuickActionClick(action.first) },
+                    colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
-                    Row(
+                    Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                            .fillMaxSize()
+                            .background(brush = lightGradient)
                     ) {
-                        Box(
+                        Column(
                             modifier = Modifier
-                                .size(36.dp)
-                                .clip(androidx.compose.foundation.shape.CircleShape)
-                                .background(iconTint.copy(alpha = 0.2f)),
-                            contentAlignment = Alignment.Center
+                                .fillMaxSize()
+                                .padding(8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
                         ) {
-                            Icon(
-                                action.second,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp),
-                                tint = iconTint
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(androidx.compose.foundation.shape.CircleShape)
+                                    .background(iconTint.copy(alpha = 0.2f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    action.second,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(24.dp),
+                                    tint = iconTint
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Text(
+                                text = action.first,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                maxLines = 2,
+                                lineHeight = 12.sp
                             )
                         }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = action.first,
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.weight(1f),
-                            maxLines = 1
-                        )
                         IconButton(
                             onClick = { editingIndex = index },
-                            modifier = Modifier.size(28.dp)
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .size(24.dp)
                         ) {
                             Icon(
                                 Icons.Default.Settings,
                                 contentDescription = "Düzenle",
-                                modifier = Modifier.size(18.dp),
-                                tint = iconTint.copy(alpha = 0.7f)
+                                modifier = Modifier.size(14.dp),
+                                tint = iconTint.copy(alpha = 0.5f)
                             )
                         }
                     }
