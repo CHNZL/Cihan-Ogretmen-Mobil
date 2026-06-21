@@ -546,7 +546,6 @@ fun MenuCategoryGroup(
     }
 
     val mainGradient = androidx.compose.ui.graphics.Brush.linearGradient(gradientColors)
-    val lightGradient = androidx.compose.ui.graphics.Brush.linearGradient(gradientColors.map { it.copy(alpha = 0.1f) })
     val iconTint = gradientColors.first()
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -585,15 +584,20 @@ fun MenuCategoryGroup(
                         .weight(1f)
                         .aspectRatio(1f)
                         .clickable { onQuickActionClick(action.first) },
-                    colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
                     shape = RoundedCornerShape(16.dp),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(brush = lightGradient)
-                    ) {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    brush = androidx.compose.ui.graphics.Brush.linearGradient(
+                                        colors = listOf(Color.White, gradientColors.last().copy(alpha = 0.05f))
+                                    )
+                                )
+                        )
                         Column(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -603,16 +607,16 @@ fun MenuCategoryGroup(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(androidx.compose.foundation.shape.CircleShape)
-                                    .background(iconTint.copy(alpha = 0.2f)),
+                                    .size(44.dp)
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(brush = mainGradient),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     action.second,
                                     contentDescription = null,
                                     modifier = Modifier.size(24.dp),
-                                    tint = iconTint
+                                    tint = Color.White
                                 )
                             }
                             Spacer(modifier = Modifier.height(10.dp))
@@ -620,7 +624,7 @@ fun MenuCategoryGroup(
                                 text = action.first,
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
+                                color = Color(0xFF1E293B),
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                                 maxLines = 2,
                                 lineHeight = 12.sp
