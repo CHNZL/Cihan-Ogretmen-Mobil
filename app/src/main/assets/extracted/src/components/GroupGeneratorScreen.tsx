@@ -18,6 +18,8 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import jsPDF from 'jspdf';
 import * as htmlToImage from 'html-to-image';
+import { db } from '../firebase';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 
 interface Student {
   id: string;
@@ -34,10 +36,11 @@ interface Group {
 
 interface GroupGeneratorScreenProps {
   students: Student[];
+  user: any;
   onBack: () => void;
 }
 
-export const GroupGeneratorScreen: React.FC<GroupGeneratorScreenProps> = ({ students, onBack }) => {
+export const GroupGeneratorScreen: React.FC<GroupGeneratorScreenProps> = ({ students, user, onBack }) => {
   const [mode, setMode] = useState<'selection' | 'random' | 'manual'>('selection');
   const [groupCount, setGroupCount] = useState(5);
   const [groups, setGroups] = useState<Group[]>([]);
@@ -52,6 +55,51 @@ export const GroupGeneratorScreen: React.FC<GroupGeneratorScreenProps> = ({ stud
   const [balanceGender, setBalanceGender] = useState(true);
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
   const [targetMode, setTargetMode] = useState<'random' | 'manual'>('random');
+
+  // Real-time groupings loader/sync from Firestore
+  useEffect(() => {
+    if (!user) return;
+    const docRef = doc(db, 'users', user.uid, 'config', 'groupings');
+    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.groups) {
+          setGroups(data.groups);
+        }
+        if (data.mode) {
+          setMode(data.mode);
+        }
+        if (data.unassignedStudents) {
+          setUnassignedStudents(data.unassignedStudents);
+        } else if (data.groups && data.mode === 'manual') {
+          const assignedIds = new Set(data.groups.flatMap((g: Group) => g.studentIds));
+          const unassigned = students.map(s => s.id).filter(id => !assignedIds.has(id));
+          setUnassignedStudents(unassigned);
+        }
+      }
+    }, (err) => {
+      console.error("Groupings listen error:", err);
+    });
+    return () => unsubscribe();
+  }, [user, students]);
+
+  const handleSaveToFirestore = async () => {
+    if (!user) return;
+    try {
+      const docRef = doc(db, 'users', user.uid, 'config', 'groupings');
+      await setDoc(docRef, {
+        groups,
+        mode,
+        unassignedStudents,
+        manualModeActive: mode === 'manual',
+        updatedAt: Date.now()
+      });
+      alert('Grup planı başarıyla kaydedildi!');
+    } catch (err) {
+      console.error("Grup kaydetme hatası:", err);
+      alert('Grup planı kaydedilirken bir hata oluştu.');
+    }
+  };
 
   // Initialize unassigned students when entering manual mode
   useEffect(() => {
@@ -266,7 +314,7 @@ export const GroupGeneratorScreen: React.FC<GroupGeneratorScreenProps> = ({ stud
               </button>
             )}
             <button 
-              onClick={() => {/* Save logic */}}
+              onClick={handleSaveToFirestore}
               className="flex items-center gap-2 px-6 py-3 bg-indigo-500 text-white rounded-2xl font-bold hover:bg-indigo-600 transition-all shadow-lg shadow-indigo-200 dark:shadow-none"
             >
               <Save size={20} />

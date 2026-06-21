@@ -461,6 +461,59 @@ class FirestoreRepository {
         }
     }
 
+    suspend fun saveGroupings(
+        teacherUid: String,
+        groups: List<Pair<String, List<Student>>>,
+        manualModeActive: Boolean
+    ) {
+        if (teacherUid.isEmpty()) return
+        try {
+            val docRef = db.collection("users").document(teacherUid).collection("config").document("groupings")
+            val groupsList = groups.mapIndexed { idx, groupPair ->
+                mapOf(
+                    "id" to "group-${idx + 1}",
+                    "name" to groupPair.first,
+                    "studentIds" to groupPair.second.map { it.id }
+                )
+            }
+            val data = mapOf(
+                "manualModeActive" to manualModeActive,
+                "mode" to (if (manualModeActive) "manual" else "random"),
+                "groups" to groupsList,
+                "updatedAt" to System.currentTimeMillis()
+            )
+            docRef.set(data).awaitWithTimeout()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    suspend fun getGroupings(teacherUid: String): Pair<Boolean, List<Pair<String, List<String>>>>? {
+        if (teacherUid.isEmpty()) return null
+        return try {
+            val doc = db.collection("users").document(teacherUid).collection("config").document("groupings")
+                .get()
+                .awaitWithTimeout()
+            if (doc != null && doc.exists()) {
+                val manualModeActive = doc.getBoolean("manualModeActive") ?: false
+                val groupsListRaw = doc.get("groups") as? List<*>
+                val groups = groupsListRaw?.mapNotNull { item ->
+                    val map = item as? Map<*, *>
+                    if (map != null) {
+                        val name = map["name"] as? String ?: ""
+                        val studentIds = map["studentIds"] as? List<*> ?: emptyList<Any>()
+                        val cleanIds = studentIds.mapNotNull { it as? String }
+                        Pair(name, cleanIds)
+                    } else null
+                } ?: emptyList()
+                Pair(manualModeActive, groups)
+            } else null
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
     fun updateRemoteControlState(
         teacherUid: String,
         activeTab: String?,

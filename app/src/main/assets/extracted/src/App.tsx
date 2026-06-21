@@ -7028,6 +7028,7 @@ export default function App() {
             {user && activeTab === 'group-creator' && (
               <GroupGeneratorScreen 
                 students={students}
+                user={user}
                 onBack={() => setActiveTab('home')}
               />
             )}

@@ -45,6 +45,7 @@ import com.example.data.Student
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -87,12 +88,35 @@ fun GroupCreatorTab(
         isLoading = true
         students = firestoreRepository.getStudents(userData.teacherUid)
         
-        // Try to load any saved groupings
-        val saved = loadSavedGroupings(context, userData.teacherUid, students)
-        if (saved != null) {
-            activeGroups = saved.first
-            manualModeActive = saved.second
-            isGroupingCreated = true
+        var loadedFromFirestore = false
+        try {
+            val firestoreData = firestoreRepository.getGroupings(userData.teacherUid)
+            if (firestoreData != null) {
+                val manualModeActiveVal = firestoreData.first
+                val groupsWithIds = firestoreData.second
+                val list = groupsWithIds.map { groupPair ->
+                    val groupName = groupPair.first
+                    val ids = groupPair.second
+                    val matchedStudents = ids.mapNotNull { sId -> students.find { it.id == sId } }
+                    Pair(groupName, matchedStudents)
+                }
+                activeGroups = list
+                manualModeActive = manualModeActiveVal
+                isGroupingCreated = true
+                loadedFromFirestore = true
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        if (!loadedFromFirestore) {
+            // Try to load any saved groupings
+            val saved = loadSavedGroupings(context, userData.teacherUid, students)
+            if (saved != null) {
+                activeGroups = saved.first
+                manualModeActive = saved.second
+                isGroupingCreated = true
+            }
         }
         isLoading = false
     }
@@ -182,6 +206,9 @@ fun GroupCreatorTab(
     // Persistent storage helpers
     fun handleSaveGroups() {
         saveGroupings(context, userData.teacherUid, activeGroups, manualModeActive)
+        coroutineScope.launch {
+            firestoreRepository.saveGroupings(userData.teacherUid, activeGroups, manualModeActive)
+        }
         Toast.makeText(context, "Grup planı başarıyla kaydedildi.", Toast.LENGTH_SHORT).show()
     }
 
