@@ -582,7 +582,7 @@ fun MenuCategoryGroup(
                 Card(
                     modifier = Modifier
                         .weight(1f)
-                        .aspectRatio(1f)
+                        .aspectRatio(0.85f)
                         .clickable { onQuickActionClick(action.first) },
                     colors = CardDefaults.cardColors(containerColor = Color.White),
                     shape = RoundedCornerShape(16.dp),
@@ -601,33 +601,33 @@ fun MenuCategoryGroup(
                         Column(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(8.dp),
+                                .padding(6.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(44.dp)
-                                    .clip(RoundedCornerShape(14.dp))
+                                    .size(36.dp)
+                                    .clip(RoundedCornerShape(12.dp))
                                     .background(brush = mainGradient),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     action.second,
                                     contentDescription = null,
-                                    modifier = Modifier.size(24.dp),
+                                    modifier = Modifier.size(18.dp),
                                     tint = Color.White
                                 )
                             }
-                            Spacer(modifier = Modifier.height(10.dp))
+                            Spacer(modifier = Modifier.height(6.dp))
                             Text(
                                 text = action.first,
-                                style = MaterialTheme.typography.labelSmall,
+                                fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF1E293B),
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                                 maxLines = 2,
-                                lineHeight = 12.sp
+                                lineHeight = 11.sp
                             )
                         }
                         IconButton(
