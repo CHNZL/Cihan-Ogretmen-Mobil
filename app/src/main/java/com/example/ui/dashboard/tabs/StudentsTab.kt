@@ -41,6 +41,7 @@ fun StudentsTab(
     var isLoading by remember { mutableStateOf(true) }
     var searchQuery by remember { mutableStateOf("") }
     var activeFilter by remember { mutableStateOf(initialFilter) }
+    var sortBy by remember { mutableStateOf("Öğrenci No") }
     
     var showAddDialog by remember { mutableStateOf(false) }
     var studentToView by remember { mutableStateOf<Student?>(null) }
@@ -77,7 +78,13 @@ fun StudentsTab(
         }
         
         matchesSearch && matchesFilter
-    }.sortedBy { it.studentNo.toIntOrNull() ?: Int.MAX_VALUE }
+    }.let { list ->
+        if (sortBy == "Adı Soyadı") {
+            list.sortedBy { it.name + " " + it.surname }
+        } else {
+            list.sortedBy { it.studentNo.toIntOrNull() ?: Int.MAX_VALUE }
+        }
+    }
 
     val totalCount = students.size
     val maleCount = students.count { it.gender.equals("Erkek", ignoreCase = true) }
@@ -159,22 +166,44 @@ fun StudentsTab(
         
         Spacer(modifier = Modifier.height(8.dp))
         
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = { searchQuery = it },
-            placeholder = { Text("Öğrenci ara...") },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
-            singleLine = true,
-            shape = CircleShape,
-            colors = OutlinedTextFieldDefaults.colors(
-                unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                focusedContainerColor = MaterialTheme.colorScheme.surface
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                placeholder = { Text("Öğrenci ara...") },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+                shape = CircleShape,
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface
+                )
             )
-        )
+            
+            Spacer(modifier = Modifier.width(8.dp))
+            
+            IconButton(
+                onClick = { 
+                    sortBy = if (sortBy == "Öğrenci No") "Adı Soyadı" else "Öğrenci No"
+                },
+                modifier = Modifier
+                    .size(52.dp)
+                    .background(MaterialTheme.colorScheme.surfaceVariant, CircleShape)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.SwapVert,
+                    contentDescription = "Sırala",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
         
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -318,7 +347,7 @@ fun StudentsTab(
             LazyColumn(
                 state = listState,
                 contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 items(filteredStudents) { student ->
                     StudentItem(
@@ -408,7 +437,7 @@ fun StudentItem(student: Student, onClick: () -> Unit) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
