@@ -202,10 +202,20 @@ export const StarsBadgesScreen: React.FC<StarsBadgesScreenProps> = ({ students, 
             if (data.timerCommand === 'open_bulk_star') {
               setIsBulkModalOpen(true);
               setBulkStep(1);
-            } else if (data.timerCommand === 'open_bulk_star_step2' && data.bulkConfig) {
-              setBulkCategory(data.bulkConfig.category);
-              setBulkDescription(data.bulkConfig.reason);
-              setBulkAmount(data.bulkConfig.starCount || 1);
+            } else if (data.timerCommand === 'open_bulk_star_step2') {
+              const bulkCfg = data.bulkConfig || {};
+              setBulkCategory(bulkCfg.category || '');
+              setBulkDescription(bulkCfg.reason || '');
+              setBulkAmount(bulkCfg.starCount || 1);
+              
+              if (typeof bulkCfg.timer !== 'undefined') {
+                setBulkTimer(Number(bulkCfg.timer));
+                setTimeLeft(Number(bulkCfg.timer));
+              }
+              if (typeof bulkCfg.personCount !== 'undefined') {
+                setBulkPersonCount(Number(bulkCfg.personCount));
+              }
+
               setSelectedStudentIds([]); // Clear selection
               setIsBulkModalOpen(true);
               setBulkStep(2);
