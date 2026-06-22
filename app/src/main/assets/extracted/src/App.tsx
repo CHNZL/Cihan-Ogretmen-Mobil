@@ -662,6 +662,7 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const isDeletingAccountRef = useRef(false);
+  const [appRemoteState, setAppRemoteState] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(() => {
@@ -2243,6 +2244,7 @@ export default function App() {
 
     // Use a ref and time check to prevent firing stale commands across tabs, while surviving hard refreshes
     const handleRemoteData = (data: any) => {
+      setAppRemoteState(data);
       if (data && data.activeTab) {
         const remoteTime = data.updatedAt || 0;
         
@@ -7038,6 +7040,7 @@ export default function App() {
               <StarsBadgesScreen 
                 students={students}
                 user={user}
+                remoteState={appRemoteState}
                 onBack={() => setActiveTab('home')}
               />
             )}

@@ -47,6 +47,7 @@ interface Student {
 interface StarsBadgesScreenProps {
   students: Student[];
   user: any;
+  remoteState?: any;
   onBack: () => void;
 }
 
@@ -70,7 +71,7 @@ const STAR_CATEGORIES = [
   { id: 'ozel', name: 'Öğretmen Özel Ödülü Yıldızı', color: 'bg-red-50 text-red-600', icon: Gem }
 ];
 
-export const StarsBadgesScreen: React.FC<StarsBadgesScreenProps> = ({ students, user, onBack }) => {
+export const StarsBadgesScreen: React.FC<StarsBadgesScreenProps> = ({ students, user, remoteState, onBack }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const selectedStudent = students.find(s => s.id === selectedStudentId) || null;
@@ -184,62 +185,43 @@ export const StarsBadgesScreen: React.FC<StarsBadgesScreenProps> = ({ students, 
 
   // Remote Control Effect for Etkinlikli Yıldız
   React.useEffect(() => {
-    if (!user) return;
-    const remoteDocRef = doc(db, 'users', user.uid, 'remote_control', 'state');
+    if (!remoteState) return;
     
-    const handleRemoteData = (snap: any) => {
-      if (snap.exists()) {
-        const data = snap.data();
-        const updatedAt = data.updatedAt || 0;
+    const data = remoteState;
+    const updatedAt = data.updatedAt || 0;
+    
+    // Prevent infinite loops in the same session
+    if (updatedAt !== lastProcessedRemoteRef.current && updatedAt > 0) {
+      lastProcessedRemoteRef.current = updatedAt;
+      
+      if (data.timerCommand === 'open_bulk_star') {
+        setIsBulkModalOpen(true);
+        setBulkStep(1);
+      } else if (data.timerCommand === 'open_bulk_star_step2') {
+        const bulkCfg = data.bulkConfig || {};
         
-        // Prevent infinite loops in the same session
-        if (updatedAt !== lastProcessedRemoteRef.current && updatedAt > 0) {
-          lastProcessedRemoteRef.current = updatedAt;
-          
-          if (data.timerCommand === 'open_bulk_star') {
-            setIsBulkModalOpen(true);
-            setBulkStep(1);
-          } else if (data.timerCommand === 'open_bulk_star_step2') {
-            const bulkCfg = data.bulkConfig || {};
-            
-            // Try to match category ignoring case exactly
-            const androidCat = (bulkCfg.category || '').toLowerCase();
-            const matchedCat = STAR_CATEGORIES.find(c => c.name.toLowerCase() === androidCat);
-            setBulkCategory(matchedCat ? matchedCat.name : (bulkCfg.category || ''));
-            
-            setBulkDescription(bulkCfg.reason || '');
-            setBulkAmount(bulkCfg.starCount || 1);
-            
-            if (typeof bulkCfg.timer !== 'undefined') {
-              setBulkTimer(Number(bulkCfg.timer));
-              setTimeLeft(Number(bulkCfg.timer));
-            }
-            if (typeof bulkCfg.personCount !== 'undefined') {
-              setBulkPersonCount(Number(bulkCfg.personCount));
-            }
-
-            setSelectedStudentIds([]); // Clear selection
-            setIsBulkModalOpen(true);
-            setBulkStep(2);
-          }
+        // Try to match category ignoring case exactly
+        const androidCat = (bulkCfg.category || '').toLowerCase();
+        const matchedCat = STAR_CATEGORIES.find(c => c.name.toLowerCase() === androidCat);
+        setBulkCategory(matchedCat ? matchedCat.name : (bulkCfg.category || ''));
+        
+        setBulkDescription(bulkCfg.reason || '');
+        setBulkAmount(bulkCfg.starCount || 1);
+        
+        if (typeof bulkCfg.timer !== 'undefined') {
+          setBulkTimer(Number(bulkCfg.timer));
+          setTimeLeft(Number(bulkCfg.timer));
         }
+        if (typeof bulkCfg.personCount !== 'undefined') {
+          setBulkPersonCount(Number(bulkCfg.personCount));
+        }
+
+        setSelectedStudentIds([]); // Clear selection
+        setIsBulkModalOpen(true);
+        setBulkStep(2);
       }
-    };
-
-    const unsub = onSnapshot(remoteDocRef, handleRemoteData);
-
-    let unsub2 = () => {};
-    const lowerEmail = (user.email || '').toLowerCase();
-    if (lowerEmail === 'cihan.ozel10@gmail.com' || lowerEmail === 'cihanogretmen10@gmail.com') {
-      const fallbackDocRef = doc(db, 'users', 'cihan_ozel_web_uid', 'remote_control', 'state');
-      unsub2 = onSnapshot(fallbackDocRef, handleRemoteData);
     }
-
-    return () => {
-      unsub();
-      unsub2();
-    };
-  }, [user]);
+  }, [remoteState]);
 
   // Timer Effect
   React.useEffect(() => {
