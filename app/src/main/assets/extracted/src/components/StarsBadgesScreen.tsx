@@ -180,6 +180,8 @@ export const StarsBadgesScreen: React.FC<StarsBadgesScreenProps> = ({ students, 
     }
   }, [user, students.length]);
 
+  const lastProcessedRemoteRef = React.useRef(0);
+
   // Remote Control Effect for Etkinlikli Yıldız
   React.useEffect(() => {
     if (!user) return;
@@ -190,22 +192,24 @@ export const StarsBadgesScreen: React.FC<StarsBadgesScreenProps> = ({ students, 
         const data = snap.data();
         const updatedAt = data.updatedAt || 0;
         
-        // Use localStorage for global cross-mount persistence
-        const lastProcessed = Number(localStorage.getItem(`last_remote_${user.uid}`) || 0);
-
-        if (updatedAt > lastProcessed) {
-          localStorage.setItem(`last_remote_${user.uid}`, updatedAt.toString());
+        // Use a ref to prevent infinite loops during the same session, 
+        // but allow it to trigger on fresh page loads if the command is recent (e.g. within the last 5 minutes)
+        if (updatedAt !== lastProcessedRemoteRef.current) {
+          lastProcessedRemoteRef.current = updatedAt;
           
-          if (data.timerCommand === 'open_bulk_star') {
-            setIsBulkModalOpen(true);
-            setBulkStep(1);
-          } else if (data.timerCommand === 'open_bulk_star_step2' && data.bulkConfig) {
-            setBulkCategory(data.bulkConfig.category);
-            setBulkDescription(data.bulkConfig.reason);
-            setBulkAmount(data.bulkConfig.starCount || 1);
-            setSelectedStudentIds([]); // Clear any previous selection
-            setIsBulkModalOpen(true);
-            setBulkStep(2);
+          const now = Date.now();
+          if (now - updatedAt < 5 * 60 * 1000) { // 5 minutes freshness
+            if (data.timerCommand === 'open_bulk_star') {
+              setIsBulkModalOpen(true);
+              setBulkStep(1);
+            } else if (data.timerCommand === 'open_bulk_star_step2' && data.bulkConfig) {
+              setBulkCategory(data.bulkConfig.category);
+              setBulkDescription(data.bulkConfig.reason);
+              setBulkAmount(data.bulkConfig.starCount || 1);
+              setSelectedStudentIds([]); // Clear any previous selection
+              setIsBulkModalOpen(true);
+              setBulkStep(2);
+            }
           }
         }
       }
