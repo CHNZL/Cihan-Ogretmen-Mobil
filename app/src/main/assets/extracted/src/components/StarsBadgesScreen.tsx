@@ -180,48 +180,25 @@ export const StarsBadgesScreen: React.FC<StarsBadgesScreenProps> = ({ students, 
     }
   }, [user, students.length]);
 
+  const lastProcessedRemoteRef = React.useRef(0);
+
   // Remote Control Effect for Etkinlikli Yıldız
   React.useEffect(() => {
     if (!user) return;
     const remoteDocRef = doc(db, 'users', user.uid, 'remote_control', 'state');
     
-    const unsub = onSnapshot(remoteDocRef, (snap) => {
+    const handleRemoteData = (snap: any) => {
       if (snap.exists()) {
         const data = snap.data();
         const updatedAt = data.updatedAt || 0;
-        const lastProcessed = Number(localStorage.getItem(`stars_badges_remote_${user.uid}`) || 0);
         
-        if (updatedAt > lastProcessed) {
-          localStorage.setItem(`stars_badges_remote_${user.uid}`, updatedAt.toString());
+        // Prevent infinite loops in the same session, 
+        // but allow firing on F5/hard refresh if command is recent (< 12 hours to handle timezone/clock skews)
+        if (updatedAt !== lastProcessedRemoteRef.current) {
+          lastProcessedRemoteRef.current = updatedAt;
           
-          if (data.timerCommand === 'open_bulk_star') {
-            setIsBulkModalOpen(true);
-            setBulkStep(1);
-          } else if (data.timerCommand === 'open_bulk_star_step2' && data.bulkConfig) {
-            setBulkCategory(data.bulkConfig.category);
-            setBulkDescription(data.bulkConfig.reason);
-            setBulkAmount(data.bulkConfig.starCount || 1);
-            setSelectedStudentIds([]); // Clear any previous selection
-            setIsBulkModalOpen(true);
-            setBulkStep(2);
-          }
-        }
-      }
-    });
-
-    let unsub2 = () => {};
-    const lowerEmail = (user.email || '').toLowerCase();
-    if (lowerEmail === 'cihan.ozel10@gmail.com' || lowerEmail === 'cihanogretmen10@gmail.com') {
-      const fallbackDocRef = doc(db, 'users', 'cihan_ozel_web_uid', 'remote_control', 'state');
-      unsub2 = onSnapshot(fallbackDocRef, (snap) => {
-        if (snap.exists()) {
-          const data = snap.data();
-          const updatedAt = data.updatedAt || 0;
-          const lastProcessed = Number(localStorage.getItem(`stars_badges_remote_${user.uid}`) || 0);
-          
-          if (updatedAt > lastProcessed) {
-            localStorage.setItem(`stars_badges_remote_${user.uid}`, updatedAt.toString());
-            
+          const now = Date.now();
+          if (Math.abs(now - updatedAt) < 12 * 60 * 60 * 1000) {
             if (data.timerCommand === 'open_bulk_star') {
               setIsBulkModalOpen(true);
               setBulkStep(1);
@@ -229,13 +206,22 @@ export const StarsBadgesScreen: React.FC<StarsBadgesScreenProps> = ({ students, 
               setBulkCategory(data.bulkConfig.category);
               setBulkDescription(data.bulkConfig.reason);
               setBulkAmount(data.bulkConfig.starCount || 1);
-              setSelectedStudentIds([]);
+              setSelectedStudentIds([]); // Clear selection
               setIsBulkModalOpen(true);
               setBulkStep(2);
             }
           }
         }
-      });
+      }
+    };
+
+    const unsub = onSnapshot(remoteDocRef, handleRemoteData);
+
+    let unsub2 = () => {};
+    const lowerEmail = (user.email || '').toLowerCase();
+    if (lowerEmail === 'cihan.ozel10@gmail.com' || lowerEmail === 'cihanogretmen10@gmail.com') {
+      const fallbackDocRef = doc(db, 'users', 'cihan_ozel_web_uid', 'remote_control', 'state');
+      unsub2 = onSnapshot(fallbackDocRef, handleRemoteData);
     }
 
     return () => {

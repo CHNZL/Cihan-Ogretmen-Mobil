@@ -2229,6 +2229,8 @@ export default function App() {
     };
   }, []);
 
+  const appLastProcessedRemoteRef = React.useRef(0);
+
   useEffect(() => {
     if (!user) {
       setStudents([]);
@@ -2239,15 +2241,18 @@ export default function App() {
 
     let unsubscribeRemote = () => {};
 
-    // Use sessionStorage to prevent firing stale commands across tabs, while surviving hard refreshes
+    // Use a ref and time check to prevent firing stale commands across tabs, while surviving hard refreshes
     const handleRemoteData = (data: any) => {
       if (data && data.activeTab) {
         const remoteTime = data.updatedAt || 0;
-        const lastProcessed = Number(sessionStorage.getItem(`app_active_tab_remote_${user.uid}`) || 0);
         
-        if (remoteTime > lastProcessed) {
-          sessionStorage.setItem(`app_active_tab_remote_${user.uid}`, remoteTime.toString());
-          setActiveTab(data.activeTab);
+        if (remoteTime !== appLastProcessedRemoteRef.current) {
+          appLastProcessedRemoteRef.current = remoteTime;
+          
+          const now = Date.now();
+          if (Math.abs(now - remoteTime) < 12 * 60 * 60 * 1000) {
+            setActiveTab(data.activeTab);
+          }
         }
       }
     };
