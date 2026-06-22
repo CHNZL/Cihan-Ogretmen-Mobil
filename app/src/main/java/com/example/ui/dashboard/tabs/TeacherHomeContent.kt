@@ -213,7 +213,7 @@ fun TeacherHomeContent(
                                                 if (updateAvailable) {
                                                     updateViewModel.startDownload(context)
                                                 } else {
-                                                    updateViewModel.checkForUpdates(silentCheckOnStartup = false)
+                                                    updateViewModel.checkForUpdates(silentCheckOnStartup = false, autoDownloadContext = context)
                                                 }
                                             }
                                             .padding(horizontal = 10.dp, vertical = 6.dp),

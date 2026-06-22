@@ -2246,13 +2246,9 @@ export default function App() {
       if (data && data.activeTab) {
         const remoteTime = data.updatedAt || 0;
         
-        if (remoteTime !== appLastProcessedRemoteRef.current) {
+        if (remoteTime !== appLastProcessedRemoteRef.current && remoteTime > 0) {
           appLastProcessedRemoteRef.current = remoteTime;
-          
-          const now = Date.now();
-          if (Math.abs(now - remoteTime) < 12 * 60 * 60 * 1000) {
-            setActiveTab(data.activeTab);
-          }
+          setActiveTab(data.activeTab);
         }
       }
     };

@@ -45,7 +45,7 @@ class UpdateViewModel : ViewModel() {
         checkForUpdates(silentCheckOnStartup = true)
     }
 
-    fun checkForUpdates(silentCheckOnStartup: Boolean = false) {
+    fun checkForUpdates(silentCheckOnStartup: Boolean = false, autoDownloadContext: Context? = null) {
         viewModelScope.launch {
             _isLoading.value = true
             if (!silentCheckOnStartup) _message.value = null
@@ -84,7 +84,11 @@ class UpdateViewModel : ViewModel() {
                                 if (cleanTag.isNotEmpty() && cleanTag != currentVersion) {
                                     _updateAvailable.value = true
                                     _apkUrl.value = foundApkUrl
-                                    if (!silentCheckOnStartup) {
+                                    
+                                    if (autoDownloadContext != null && foundApkUrl != null) {
+                                        _message.value = "Yeni sürüm bulundu ($cleanTag)! İndirme başlatıldı."
+                                        startDownload(autoDownloadContext)
+                                    } else if (!silentCheckOnStartup) {
                                         _message.value = "Yeni sürüm bulundu ($cleanTag)!"
                                     } else {
                                         _showStartupDialog.value = true

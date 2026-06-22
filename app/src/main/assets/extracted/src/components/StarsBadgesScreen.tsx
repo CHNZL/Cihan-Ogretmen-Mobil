@@ -192,34 +192,35 @@ export const StarsBadgesScreen: React.FC<StarsBadgesScreenProps> = ({ students, 
         const data = snap.data();
         const updatedAt = data.updatedAt || 0;
         
-        // Prevent infinite loops in the same session, 
-        // but allow firing on F5/hard refresh if command is recent (< 12 hours to handle timezone/clock skews)
-        if (updatedAt !== lastProcessedRemoteRef.current) {
+        // Prevent infinite loops in the same session
+        if (updatedAt !== lastProcessedRemoteRef.current && updatedAt > 0) {
           lastProcessedRemoteRef.current = updatedAt;
           
-          const now = Date.now();
-          if (Math.abs(now - updatedAt) < 12 * 60 * 60 * 1000) {
-            if (data.timerCommand === 'open_bulk_star') {
-              setIsBulkModalOpen(true);
-              setBulkStep(1);
-            } else if (data.timerCommand === 'open_bulk_star_step2') {
-              const bulkCfg = data.bulkConfig || {};
-              setBulkCategory(bulkCfg.category || '');
-              setBulkDescription(bulkCfg.reason || '');
-              setBulkAmount(bulkCfg.starCount || 1);
-              
-              if (typeof bulkCfg.timer !== 'undefined') {
-                setBulkTimer(Number(bulkCfg.timer));
-                setTimeLeft(Number(bulkCfg.timer));
-              }
-              if (typeof bulkCfg.personCount !== 'undefined') {
-                setBulkPersonCount(Number(bulkCfg.personCount));
-              }
-
-              setSelectedStudentIds([]); // Clear selection
-              setIsBulkModalOpen(true);
-              setBulkStep(2);
+          if (data.timerCommand === 'open_bulk_star') {
+            setIsBulkModalOpen(true);
+            setBulkStep(1);
+          } else if (data.timerCommand === 'open_bulk_star_step2') {
+            const bulkCfg = data.bulkConfig || {};
+            
+            // Try to match category ignoring case exactly
+            const androidCat = (bulkCfg.category || '').toLowerCase();
+            const matchedCat = STAR_CATEGORIES.find(c => c.name.toLowerCase() === androidCat);
+            setBulkCategory(matchedCat ? matchedCat.name : (bulkCfg.category || ''));
+            
+            setBulkDescription(bulkCfg.reason || '');
+            setBulkAmount(bulkCfg.starCount || 1);
+            
+            if (typeof bulkCfg.timer !== 'undefined') {
+              setBulkTimer(Number(bulkCfg.timer));
+              setTimeLeft(Number(bulkCfg.timer));
             }
+            if (typeof bulkCfg.personCount !== 'undefined') {
+              setBulkPersonCount(Number(bulkCfg.personCount));
+            }
+
+            setSelectedStudentIds([]); // Clear selection
+            setIsBulkModalOpen(true);
+            setBulkStep(2);
           }
         }
       }
