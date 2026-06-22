@@ -520,7 +520,8 @@ class FirestoreRepository {
         timerCommand: String? = null,
         timerMode: String? = null,
         duration: Long? = null,
-        remaining: Long? = null
+        remaining: Long? = null,
+        extraData: Map<String, Any>? = null
     ) {
         if (teacherUid.isEmpty()) return
         val map = mutableMapOf<String, Any>()
@@ -529,14 +530,21 @@ class FirestoreRepository {
         }
         map["updatedAt"] = System.currentTimeMillis()
 
-        if (timerCommand != null || timerMode != null || duration != null || remaining != null) {
+        if (timerCommand != null) {
+            map["timerCommand"] = timerCommand
+        }
+
+        if (timerMode != null || duration != null || remaining != null) {
             val timerMap = mutableMapOf<String, Any>()
-            if (timerCommand != null) timerMap["command"] = timerCommand
             if (timerMode != null) timerMap["mode"] = timerMode
             if (duration != null) timerMap["duration"] = duration
             if (remaining != null) timerMap["remaining"] = remaining
             timerMap["updatedAt"] = System.currentTimeMillis()
             map["timer"] = timerMap
+        }
+
+        if (extraData != null) {
+            map.putAll(extraData)
         }
 
         db.collection("users").document(teacherUid)

@@ -190,6 +190,13 @@ export const StarsBadgesScreen: React.FC<StarsBadgesScreenProps> = ({ students, 
         if (data.timerCommand === 'open_bulk_star') {
           setIsBulkModalOpen(true);
           setBulkStep(1);
+        } else if (data.timerCommand === 'open_bulk_star_step2' && data.bulkConfig) {
+          setBulkCategory(data.bulkConfig.category);
+          setBulkDescription(data.bulkConfig.reason);
+          setBulkAmount(data.bulkConfig.starCount || 1);
+          setSelectedStudentIds([]); // Clear any previous selection
+          setIsBulkModalOpen(true);
+          setBulkStep(2);
         }
       }
     });
@@ -204,6 +211,13 @@ export const StarsBadgesScreen: React.FC<StarsBadgesScreenProps> = ({ students, 
           if (data.timerCommand === 'open_bulk_star') {
             setIsBulkModalOpen(true);
             setBulkStep(1);
+          } else if (data.timerCommand === 'open_bulk_star_step2' && data.bulkConfig) {
+            setBulkCategory(data.bulkConfig.category);
+            setBulkDescription(data.bulkConfig.reason);
+            setBulkAmount(data.bulkConfig.starCount || 1);
+            setSelectedStudentIds([]); // Clear any previous selection
+            setIsBulkModalOpen(true);
+            setBulkStep(2);
           }
         }
       });
