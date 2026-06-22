@@ -2239,14 +2239,14 @@ export default function App() {
 
     let unsubscribeRemote = () => {};
 
-    // Use a reference to track the last processed timestamp to avoid clock-skew issues
-    const lastProcessedRemoteUpdateRef = { current: 0 };
-
+    // Use localStorage to track the last processed timestamp to avoid clock-skew issues and cross-tab syncing
     const handleRemoteData = (data: any) => {
       if (data && data.activeTab) {
         const remoteTime = data.updatedAt || 0;
-        if (remoteTime !== lastProcessedRemoteUpdateRef.current) {
-          lastProcessedRemoteUpdateRef.current = remoteTime;
+        const lastProcessed = Number(localStorage.getItem(`app_last_remote_${user.uid}`) || 0);
+
+        if (remoteTime > lastProcessed) {
+          localStorage.setItem(`app_last_remote_${user.uid}`, remoteTime.toString());
           setActiveTab(data.activeTab);
         }
       }

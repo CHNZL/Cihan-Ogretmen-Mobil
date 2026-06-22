@@ -70,8 +70,6 @@ const STAR_CATEGORIES = [
   { id: 'ozel', name: 'Öğretmen Özel Ödülü Yıldızı', color: 'bg-red-50 text-red-600', icon: Gem }
 ];
 
-let globalLastProcessedRemoteTimestamp = 0;
-
 export const StarsBadgesScreen: React.FC<StarsBadgesScreenProps> = ({ students, user, onBack }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
@@ -192,9 +190,11 @@ export const StarsBadgesScreen: React.FC<StarsBadgesScreenProps> = ({ students, 
         const data = snap.data();
         const updatedAt = data.updatedAt || 0;
         
-        // Only process if it is a new command (updatedAt > global timestamp)
-        if (updatedAt !== globalLastProcessedRemoteTimestamp && updatedAt > globalLastProcessedRemoteTimestamp) {
-          globalLastProcessedRemoteTimestamp = updatedAt;
+        // Use localStorage for global cross-mount persistence
+        const lastProcessed = Number(localStorage.getItem(`last_remote_${user.uid}`) || 0);
+
+        if (updatedAt > lastProcessed) {
+          localStorage.setItem(`last_remote_${user.uid}`, updatedAt.toString());
           
           if (data.timerCommand === 'open_bulk_star') {
             setIsBulkModalOpen(true);
