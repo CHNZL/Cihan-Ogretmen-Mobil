@@ -2239,20 +2239,15 @@ export default function App() {
 
     let unsubscribeRemote = () => {};
 
-    const appLastProcessedRemoteRef = { current: 0 };
-
-    // Use a ref and freshness check to track the last processed timestamp to avoid clock-skew issues and allow hard refreshes
+    // Use sessionStorage to prevent firing stale commands across tabs, while surviving hard refreshes
     const handleRemoteData = (data: any) => {
       if (data && data.activeTab) {
         const remoteTime = data.updatedAt || 0;
+        const lastProcessed = Number(sessionStorage.getItem(`app_active_tab_remote_${user.uid}`) || 0);
         
-        if (remoteTime !== appLastProcessedRemoteRef.current) {
-          appLastProcessedRemoteRef.current = remoteTime;
-          
-          const now = Date.now();
-          if (now - remoteTime < 5 * 60 * 1000) { // 5 minutes freshness
-            setActiveTab(data.activeTab);
-          }
+        if (remoteTime > lastProcessed) {
+          sessionStorage.setItem(`app_active_tab_remote_${user.uid}`, remoteTime.toString());
+          setActiveTab(data.activeTab);
         }
       }
     };
