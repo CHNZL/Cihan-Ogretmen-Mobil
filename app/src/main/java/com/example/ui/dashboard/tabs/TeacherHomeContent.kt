@@ -65,7 +65,24 @@ fun TeacherHomeContent(
     var subjects by remember { mutableStateOf<List<com.example.ui.dashboard.tabs.Subject>>(emptyList()) }
     var lessonCount by remember { mutableStateOf(6) }
 
+    var schoolNameState by remember { mutableStateOf("Yükleniyor...") }
+    var gradeLevelState by remember { mutableStateOf("") }
+    var sectionState by remember { mutableStateOf("") }
+
     DisposableEffect(teacherUid) {
+        val profileRef = db.collection("users").document(teacherUid)
+        val profileListener = profileRef.addSnapshotListener { snapshot, error ->
+            if (snapshot != null && snapshot.exists()) {
+                schoolNameState = snapshot.getString("schoolName") ?: ""
+                gradeLevelState = snapshot.getString("gradeLevel") ?: ""
+                sectionState = snapshot.getString("section") ?: ""
+            } else {
+                schoolNameState = ""
+                gradeLevelState = ""
+                sectionState = ""
+            }
+        }
+
         val configRef = db.collection("users").document(teacherUid).collection("config").document("schedule")
         val configListener = configRef.addSnapshotListener { snapshot, error ->
             if (snapshot != null && snapshot.exists()) {
@@ -105,6 +122,7 @@ fun TeacherHomeContent(
         }
 
         onDispose {
+            profileListener.remove()
             configListener.remove()
             dataListener.remove()
             subjectsListener.remove()
@@ -274,8 +292,21 @@ fun TeacherHomeContent(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            InfoChip(icon = Icons.Default.School, text = "SÜLEYMAN SAMİ KEPENEK İLKOKULU")
-                            InfoChip(icon = Icons.Default.Groups, text = "3. Sınıf / D Şubesi")
+                            val schoolToShow = schoolNameState.ifEmpty { "Okul Belirtilmemiş" }
+                            val classToShow = if (gradeLevelState.isNotEmpty()) {
+                                val secSuffix = if (sectionState.isNotEmpty()) {
+                                    val cleanSec = sectionState.uppercase(Locale("tr", "TR"))
+                                    val secLabel = if (cleanSec.contains("ŞUBESİ") || cleanSec.contains("SUBESI")) cleanSec else "$cleanSec Şubesi"
+                                    " / $secLabel"
+                                } else {
+                                    ""
+                                }
+                                "$gradeLevelState$secSuffix"
+                            } else {
+                                "Sınıf Belirtilmemiş"
+                            }
+                            InfoChip(icon = Icons.Default.School, text = schoolToShow.uppercase(Locale("tr", "TR")))
+                            InfoChip(icon = Icons.Default.Groups, text = classToShow)
                         }
 
                         Spacer(modifier = Modifier.height(16.dp))
