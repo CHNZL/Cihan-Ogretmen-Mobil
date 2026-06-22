@@ -70,6 +70,8 @@ const STAR_CATEGORIES = [
   { id: 'ozel', name: 'Öğretmen Özel Ödülü Yıldızı', color: 'bg-red-50 text-red-600', icon: Gem }
 ];
 
+let globalLastProcessedRemoteTimestamp = 0;
+
 export const StarsBadgesScreen: React.FC<StarsBadgesScreenProps> = ({ students, user, onBack }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
@@ -189,9 +191,11 @@ export const StarsBadgesScreen: React.FC<StarsBadgesScreenProps> = ({ students, 
       if (snap.exists()) {
         const data = snap.data();
         const updatedAt = data.updatedAt || 0;
-        const now = Date.now();
-        // Only process if the command is fresh (within the last 15 seconds)
-        if (now - updatedAt < 15000) {
+        
+        // Only process if it is a new command (updatedAt > global timestamp)
+        if (updatedAt !== globalLastProcessedRemoteTimestamp && updatedAt > globalLastProcessedRemoteTimestamp) {
+          globalLastProcessedRemoteTimestamp = updatedAt;
+          
           if (data.timerCommand === 'open_bulk_star') {
             setIsBulkModalOpen(true);
             setBulkStep(1);
