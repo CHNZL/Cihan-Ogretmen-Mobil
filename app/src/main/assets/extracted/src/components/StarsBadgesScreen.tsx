@@ -184,30 +184,14 @@ export const StarsBadgesScreen: React.FC<StarsBadgesScreenProps> = ({ students, 
   React.useEffect(() => {
     if (!user) return;
     const remoteDocRef = doc(db, 'users', user.uid, 'remote_control', 'state');
-    const unsub = onSnapshot(remoteDocRef, (snap) => {
+    
+    const handleRemoteData = (snap: any) => {
       if (snap.exists()) {
         const data = snap.data();
-        if (data.timerCommand === 'open_bulk_star') {
-          setIsBulkModalOpen(true);
-          setBulkStep(1);
-        } else if (data.timerCommand === 'open_bulk_star_step2' && data.bulkConfig) {
-          setBulkCategory(data.bulkConfig.category);
-          setBulkDescription(data.bulkConfig.reason);
-          setBulkAmount(data.bulkConfig.starCount || 1);
-          setSelectedStudentIds([]); // Clear any previous selection
-          setIsBulkModalOpen(true);
-          setBulkStep(2);
-        }
-      }
-    });
-
-    let unsub2 = () => {};
-    const lowerEmail = (user.email || '').toLowerCase();
-    if (lowerEmail === 'cihan.ozel10@gmail.com' || lowerEmail === 'cihanogretmen10@gmail.com') {
-      const fallbackDocRef = doc(db, 'users', 'cihan_ozel_web_uid', 'remote_control', 'state');
-      unsub2 = onSnapshot(fallbackDocRef, (snap) => {
-        if (snap.exists()) {
-          const data = snap.data();
+        const updatedAt = data.updatedAt || 0;
+        const now = Date.now();
+        // Only process if the command is fresh (within the last 15 seconds)
+        if (now - updatedAt < 15000) {
           if (data.timerCommand === 'open_bulk_star') {
             setIsBulkModalOpen(true);
             setBulkStep(1);
@@ -220,7 +204,16 @@ export const StarsBadgesScreen: React.FC<StarsBadgesScreenProps> = ({ students, 
             setBulkStep(2);
           }
         }
-      });
+      }
+    };
+
+    const unsub = onSnapshot(remoteDocRef, handleRemoteData);
+
+    let unsub2 = () => {};
+    const lowerEmail = (user.email || '').toLowerCase();
+    if (lowerEmail === 'cihan.ozel10@gmail.com' || lowerEmail === 'cihanogretmen10@gmail.com') {
+      const fallbackDocRef = doc(db, 'users', 'cihan_ozel_web_uid', 'remote_control', 'state');
+      unsub2 = onSnapshot(fallbackDocRef, handleRemoteData);
     }
 
     return () => {
