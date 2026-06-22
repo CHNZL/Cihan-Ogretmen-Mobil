@@ -231,6 +231,14 @@ fun StarsClassTab(userData: com.example.auth.UserData) {
                     actCategory = null
                     selectedStudentNames.clear()
                     showActivityStarStep1 = true
+                    scope.launch {
+                        val repo = com.example.data.FirestoreRepository()
+                        repo.updateRemoteControlState(
+                            teacherUid = userData.userId, 
+                            activeTab = "stars-badges", 
+                            timerCommand = "open_bulk_star"
+                        )
+                    }
                 },
                 modifier = Modifier.height(48.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6366F1)),

@@ -32,7 +32,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { db } from '../firebase';
-import { doc, updateDoc, increment, arrayUnion, arrayRemove, writeBatch } from 'firebase/firestore';
+import { doc, updateDoc, increment, arrayUnion, arrayRemove, writeBatch, onSnapshot } from 'firebase/firestore';
 import * as XLSX from 'xlsx';
 
 interface Student {
@@ -179,6 +179,41 @@ export const StarsBadgesScreen: React.FC<StarsBadgesScreenProps> = ({ students, 
       }
     }
   }, [user, students.length]);
+
+  // Remote Control Effect for Etkinlikli Yıldız
+  React.useEffect(() => {
+    if (!user) return;
+    const remoteDocRef = doc(db, 'users', user.uid, 'remote_control', 'state');
+    const unsub = onSnapshot(remoteDocRef, (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data.timerCommand === 'open_bulk_star') {
+          setIsBulkModalOpen(true);
+          setBulkStep(1);
+        }
+      }
+    });
+
+    let unsub2 = () => {};
+    const lowerEmail = (user.email || '').toLowerCase();
+    if (lowerEmail === 'cihan.ozel10@gmail.com' || lowerEmail === 'cihanogretmen10@gmail.com') {
+      const fallbackDocRef = doc(db, 'users', 'cihan_ozel_web_uid', 'remote_control', 'state');
+      unsub2 = onSnapshot(fallbackDocRef, (snap) => {
+        if (snap.exists()) {
+          const data = snap.data();
+          if (data.timerCommand === 'open_bulk_star') {
+            setIsBulkModalOpen(true);
+            setBulkStep(1);
+          }
+        }
+      });
+    }
+
+    return () => {
+      unsub();
+      unsub2();
+    };
+  }, [user]);
 
   // Timer Effect
   React.useEffect(() => {
