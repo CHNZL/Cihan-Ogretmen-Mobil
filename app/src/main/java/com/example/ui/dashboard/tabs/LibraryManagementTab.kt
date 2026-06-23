@@ -169,24 +169,6 @@ fun LibraryManagementTab(
         }
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding).background(Color(0xFFF8FAFC))) {
-            ScrollableTabRow(
-                selectedTabIndex = selectedTab,
-                edgePadding = 0.dp,
-                containerColor = Color.White,
-                contentColor = MaterialTheme.colorScheme.primary,
-                divider = { Divider(color = Color(0xFFE2E8F0)) }
-            ) {
-                Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }) {
-                    Text("Kitaplık Listesi", modifier = Modifier.padding(16.dp), fontWeight = FontWeight.Bold)
-                }
-                Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }) {
-                    Text("Okuma Kayıtları", modifier = Modifier.padding(16.dp), fontWeight = FontWeight.Bold)
-                }
-                Tab(selected = selectedTab == 2, onClick = { selectedTab = 2 }) {
-                    Text("Değerlendirme", modifier = Modifier.padding(16.dp), fontWeight = FontWeight.Bold)
-                }
-            }
-            
             Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                 if (isLoading) {
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))

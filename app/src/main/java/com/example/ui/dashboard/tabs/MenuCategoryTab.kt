@@ -50,9 +50,7 @@ fun MenuCategoryTab(
             "Hayat Bilgisi" to Icons.Default.Book,
             "İngilizce" to Icons.Default.Book,
             "Matematik" to Icons.Default.Book,
-            "Türkçe" to Icons.Default.Book,
-            "Ders Programı" to Icons.Default.CalendarToday,
-            "Zamanlayıcı" to Icons.Default.Timer
+            "Türkçe" to Icons.Default.Book
         )
         "Turnuva Yönetimi" -> listOf(
             "Yeni Turnuva" to Icons.Default.Add,

@@ -162,7 +162,7 @@ fun TeacherDashboardScreen(
                         selectedRoute == "Şanslı Öğrenci" -> com.example.ui.dashboard.tabs.LuckyStudentTab(userData = userData)
                         selectedRoute == "Zamanlayıcı" -> com.example.ui.dashboard.tabs.TimerTab(userData = userData)
                         selectedRoute == "Duyurular" -> com.example.ui.dashboard.tabs.AnnouncementsTab(userData = userData)
-                        selectedRoute in listOf("Kitaplık Yönetimi", "Kitaplık Listesi", "Okuma Kayıtları", "Okuma Değerlendirme", "Yeni Kitap Ekle") -> {
+                        selectedRoute in listOf("Kitaplık Listesi", "Okuma Kayıtları", "Okuma Değerlendirme", "Yeni Kitap Ekle") -> {
                             val initialSubTab = when (selectedRoute) {
                                 "Okuma Kayıtları" -> 1
                                 "Okuma Değerlendirme" -> 2
@@ -227,7 +227,7 @@ fun TeacherDashboardScreen(
                             selectedRoute == "Şanslı Öğrenci" -> com.example.ui.dashboard.tabs.LuckyStudentTab(userData = userData)
                             selectedRoute == "Zamanlayıcı" -> com.example.ui.dashboard.tabs.TimerTab(userData = userData)
                             selectedRoute == "Duyurular" -> com.example.ui.dashboard.tabs.AnnouncementsTab(userData = userData)
-                            selectedRoute in listOf("Kitaplık Yönetimi", "Kitaplık Listesi", "Okuma Kayıtları", "Okuma Değerlendirme", "Yeni Kitap Ekle") -> {
+                            selectedRoute in listOf("Kitaplık Listesi", "Okuma Kayıtları", "Okuma Değerlendirme", "Yeni Kitap Ekle") -> {
                                 val initialSubTab = when (selectedRoute) {
                                     "Okuma Kayıtları" -> 1
                                     "Okuma Değerlendirme" -> 2
