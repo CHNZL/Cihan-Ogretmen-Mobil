@@ -79,7 +79,7 @@ fun LibraryManagementTab(
     var showAddDialog by remember { mutableStateOf(initialOpenAddDialog) }
     
     val db = remember { FirebaseFirestore.getInstance() }
-    val teacherUid = userData.userId
+    val teacherUid = userData.teacherUid.takeIf { it.isNotBlank() } ?: userData.userId
     val scope = rememberCoroutineScope()
     
     var books by remember { mutableStateOf<List<LibraryBook>>(emptyList()) }

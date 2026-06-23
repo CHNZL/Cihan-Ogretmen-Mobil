@@ -35,6 +35,7 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun TimerTab(userData: UserData) {
+    val teacherUid = userData.teacherUid.takeIf { it.isNotBlank() } ?: userData.userId
     var isCountdownMode by remember { mutableStateOf(true) }
     var soundEnabled by remember { mutableStateOf(true) }
 
@@ -329,7 +330,7 @@ fun TimerTab(userData: UserData) {
                                         isCountdownMode = true
                                         if (soundEnabled) SoundHelper.playTick()
                                         firestoreRepository.updateRemoteControlState(
-                                            teacherUid = userData.userId,
+                                            teacherUid = teacherUid,
                                             activeTab = "timer",
                                             timerCommand = "TOGGLE_MODE",
                                             timerMode = "countdown",
@@ -358,7 +359,7 @@ fun TimerTab(userData: UserData) {
                                         isCountdownMode = false
                                         if (soundEnabled) SoundHelper.playTick()
                                         firestoreRepository.updateRemoteControlState(
-                                            teacherUid = userData.userId,
+                                            teacherUid = teacherUid,
                                             activeTab = "timer",
                                             timerCommand = "TOGGLE_MODE",
                                             timerMode = "stopwatch",
@@ -456,7 +457,7 @@ fun TimerTab(userData: UserData) {
                                     isCountdownRunning = false
                                     countdownRemainingSeconds = countdownDurationTotalSeconds
                                     firestoreRepository.updateRemoteControlState(
-                                        teacherUid = userData.userId,
+                                        teacherUid = teacherUid,
                                         activeTab = "timer",
                                         timerCommand = "RESET",
                                         duration = countdownDurationTotalSeconds,
@@ -466,7 +467,7 @@ fun TimerTab(userData: UserData) {
                                     isStopwatchRunning = false
                                     stopwatchElapsedSeconds = 0
                                     firestoreRepository.updateRemoteControlState(
-                                        teacherUid = userData.userId,
+                                        teacherUid = teacherUid,
                                         activeTab = "timer",
                                         timerCommand = "RESET",
                                         duration = 0L,
@@ -505,7 +506,7 @@ fun TimerTab(userData: UserData) {
                                         val newState = !isCountdownRunning
                                         isCountdownRunning = newState
                                         firestoreRepository.updateRemoteControlState(
-                                            teacherUid = userData.userId,
+                                            teacherUid = teacherUid,
                                             activeTab = "timer",
                                             timerCommand = if (newState) "START" else "PAUSE",
                                             duration = countdownDurationTotalSeconds,
@@ -515,7 +516,7 @@ fun TimerTab(userData: UserData) {
                                         val newState = !isStopwatchRunning
                                         isStopwatchRunning = newState
                                         firestoreRepository.updateRemoteControlState(
-                                            teacherUid = userData.userId,
+                                            teacherUid = teacherUid,
                                             activeTab = "timer",
                                             timerCommand = if (newState) "START" else "PAUSE",
                                             duration = 0L,
@@ -589,7 +590,7 @@ fun TimerTab(userData: UserData) {
                                                 countdownDurationTotalSeconds = pair.second
                                                 countdownRemainingSeconds = pair.second
                                                 firestoreRepository.updateRemoteControlState(
-                                                    teacherUid = userData.userId,
+                                                    teacherUid = teacherUid,
                                                     activeTab = "timer",
                                                     timerCommand = "SET_TIME",
                                                     duration = countdownDurationTotalSeconds,
@@ -674,7 +675,7 @@ fun TimerTab(userData: UserData) {
                             countdownRemainingSeconds = total
                             isCountdownRunning = false
                             firestoreRepository.updateRemoteControlState(
-                                teacherUid = userData.userId,
+                                teacherUid = teacherUid,
                                 activeTab = "timer",
                                 timerCommand = "SET_TIME",
                                 duration = total,

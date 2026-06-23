@@ -53,7 +53,7 @@ fun TeacherHomeContent(
     val todayFormatter = SimpleDateFormat("EEEE", Locale("tr", "TR"))
     val currentDayName = todayFormatter.format(calendar.time).replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale("tr", "TR")) else it.toString() }
 
-    val teacherUid = userData.userId
+    val teacherUid = userData.teacherUid.takeIf { it.isNotBlank() } ?: userData.userId
     val db = remember {
         com.google.firebase.firestore.FirebaseFirestore.getInstance(
             com.google.firebase.FirebaseApp.getInstance(),

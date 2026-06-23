@@ -70,7 +70,8 @@ fun TeacherDashboardScreen(
     }
 
     // Sync selected route with web remote control state
-    LaunchedEffect(selectedRoute) {
+    val teacherUid = userData.teacherUid.takeIf { it.isNotBlank() } ?: userData.userId
+    LaunchedEffect(selectedRoute, teacherUid) {
         val webTab = when (selectedRoute) {
             "Anasayfa" -> "home"
             "Sınıf Listesi" -> "class-list"
@@ -82,9 +83,9 @@ fun TeacherDashboardScreen(
             "Zamanlayıcı" -> "timer"
             else -> null
         }
-        if (webTab != null && userData.userId.isNotEmpty()) {
+        if (webTab != null && teacherUid.isNotEmpty()) {
             firestoreRepository.updateRemoteControlState(
-                teacherUid = userData.userId,
+                teacherUid = teacherUid,
                 activeTab = webTab
             )
         }

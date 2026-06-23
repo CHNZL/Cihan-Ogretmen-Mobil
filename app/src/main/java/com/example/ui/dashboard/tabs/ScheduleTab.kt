@@ -49,7 +49,7 @@ fun ScheduleTab(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val teacherUid = userData.userId
+    val teacherUid = userData.teacherUid.takeIf { it.isNotBlank() } ?: userData.userId
 
     val db = remember {
         FirebaseFirestore.getInstance(

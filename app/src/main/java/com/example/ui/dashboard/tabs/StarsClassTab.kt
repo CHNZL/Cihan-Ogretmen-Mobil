@@ -61,6 +61,7 @@ val starCategoriesDetail = listOf(
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun StarsClassTab(userData: com.example.auth.UserData) {
+    val teacherUid = userData.teacherUid.takeIf { it.isNotBlank() } ?: userData.userId
     var sortByStars by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     
@@ -68,9 +69,9 @@ fun StarsClassTab(userData: com.example.auth.UserData) {
     var students by remember { mutableStateOf<List<Student>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
 
-    LaunchedEffect(userData.userId) {
+    LaunchedEffect(teacherUid) {
         val repo = FirestoreRepository()
-        students = repo.getStudents(userData.userId)
+        students = repo.getStudents(teacherUid)
         isLoading = false
     }
 
@@ -193,9 +194,9 @@ fun StarsClassTab(userData: com.example.auth.UserData) {
                             stars = newStars,
                             starHistory = importedHistory
                         )
-                        repo.updateStudent(userData.userId, updated)
+                        repo.updateStudent(teacherUid, updated)
                     }
-                    students = repo.getStudents(userData.userId)
+                    students = repo.getStudents(teacherUid)
                     android.widget.Toast.makeText(context, "Sınıf listesi başarıyla yüklendi.", android.widget.Toast.LENGTH_SHORT).show()
                 } catch (e: Exception) {
                     android.widget.Toast.makeText(context, "Yükleme başarısız: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
@@ -236,7 +237,7 @@ fun StarsClassTab(userData: com.example.auth.UserData) {
                         try {
                             val repo = com.example.data.FirestoreRepository()
                             repo.updateRemoteControlState(
-                                teacherUid = userData.userId, 
+                                teacherUid = teacherUid, 
                                 activeTab = "stars-badges", 
                                 timerCommand = "open_bulk_star"
                             )
@@ -350,9 +351,9 @@ fun StarsClassTab(userData: com.example.auth.UserData) {
                         scope.launch {
                             val repo = FirestoreRepository()
                             students.forEach { s ->
-                                repo.updateStudent(userData.userId, s.copy(stars = 0, starHistory = emptyList()))
+                                repo.updateStudent(teacherUid, s.copy(stars = 0, starHistory = emptyList()))
                             }
-                            students = repo.getStudents(userData.userId).sortedBy { it.studentNo.toIntOrNull() ?: 9999 }
+                            students = repo.getStudents(teacherUid).sortedBy { it.studentNo.toIntOrNull() ?: 9999 }
                         }
                         showDeleteAllPrompt = false
                     },
@@ -471,7 +472,7 @@ fun StarsClassTab(userData: com.example.auth.UserData) {
                             scope.launch {
                                 val repo = com.example.data.FirestoreRepository()
                                 repo.updateRemoteControlState(
-                                    teacherUid = userData.userId, 
+                                    teacherUid = teacherUid, 
                                     activeTab = "stars-badges", 
                                     timerCommand = "open_bulk_star_step2",
                                     extraData = mapOf(
@@ -523,9 +524,9 @@ fun StarsClassTab(userData: com.example.auth.UserData) {
                             stars = s.stars + actStarsCount,
                             starHistory = s.starHistory + newItem
                         )
-                        repo.updateStudent(userData.userId, updated)
+                        repo.updateStudent(teacherUid, updated)
                     }
-                    students = repo.getStudents(userData.userId).sortedBy { it.studentNo.toIntOrNull() ?: 9999 }
+                    students = repo.getStudents(teacherUid).sortedBy { it.studentNo.toIntOrNull() ?: 9999 }
                 }
             }
             showActivityStarStep2 = false
@@ -709,7 +710,7 @@ fun StarsClassTab(userData: com.example.auth.UserData) {
                                 scope.launch {
                                     val repo = FirestoreRepository()
                                     // Fetch the latest student data to avoid overwriting the previous star if this student was also in the selected target group
-                                    val freshStudents = repo.getStudents(userData.userId)
+                                    val freshStudents = repo.getStudents(teacherUid)
                                     val latestStudent = freshStudents.find { it.id == st.id } ?: st
                                     
                                     val newItem = com.example.data.StarHistoryItem(
@@ -722,8 +723,8 @@ fun StarsClassTab(userData: com.example.auth.UserData) {
                                         stars = latestStudent.stars + actStarsCount,
                                         starHistory = latestStudent.starHistory + newItem
                                     )
-                                    repo.updateStudent(userData.userId, updated)
-                                    students = repo.getStudents(userData.userId).sortedBy { it.studentNo.toIntOrNull() ?: 9999 }
+                                    repo.updateStudent(teacherUid, updated)
+                                    students = repo.getStudents(teacherUid).sortedBy { it.studentNo.toIntOrNull() ?: 9999 }
                                 }
                                 showLuckyStudentResult = false 
                             },
@@ -789,8 +790,8 @@ fun StarsClassTab(userData: com.example.auth.UserData) {
                                         stars = st.stars + 1,
                                         starHistory = st.starHistory + newItem
                                     )
-                                    repo.updateStudent(userData.userId, updatedStudent)
-                                    students = repo.getStudents(userData.userId).sortedBy { it.studentNo.toIntOrNull() ?: 9999 }
+                                    repo.updateStudent(teacherUid, updatedStudent)
+                                    students = repo.getStudents(teacherUid).sortedBy { it.studentNo.toIntOrNull() ?: 9999 }
                                 }
                                 showGiveStarFor = null 
                             },
