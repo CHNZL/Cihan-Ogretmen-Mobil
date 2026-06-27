@@ -75,8 +75,8 @@ fun LibraryManagementTab(
     initialSubTab: Int = 0,
     initialOpenAddDialog: Boolean = false
 ) {
-    var selectedTab by remember { mutableStateOf(initialSubTab) }
     var showAddDialog by remember { mutableStateOf(initialOpenAddDialog) }
+    val selectedTab = initialSubTab
     
     val db = remember { FirebaseFirestore.getInstance() }
     val teacherUid = userData.teacherUid.takeIf { it.isNotBlank() } ?: userData.userId
