@@ -70,12 +70,12 @@ fun TeacherHomeContent(
     var sectionState by remember { mutableStateOf("") }
 
     DisposableEffect(teacherUid) {
-        val profileRef = db.collection("users").document(teacherUid)
+        val profileRef = db.collection("kullanicilar").document(teacherUid)
         val profileListener = profileRef.addSnapshotListener { snapshot, error ->
             if (snapshot != null && snapshot.exists()) {
-                schoolNameState = snapshot.getString("schoolName") ?: ""
-                gradeLevelState = snapshot.getString("gradeLevel") ?: ""
-                sectionState = snapshot.getString("section") ?: ""
+                schoolNameState = snapshot.getString("schoolName") ?: snapshot.getString("okul_adi") ?: snapshot.getString("okulAdi") ?: ""
+                gradeLevelState = snapshot.getString("gradeLevel") ?: snapshot.getString("sinif") ?: snapshot.getString("sinif_seviyesi") ?: ""
+                sectionState = snapshot.getString("section") ?: snapshot.getString("sube") ?: ""
             } else {
                 schoolNameState = ""
                 gradeLevelState = ""
@@ -83,14 +83,14 @@ fun TeacherHomeContent(
             }
         }
 
-        val configRef = db.collection("users").document(teacherUid).collection("config").document("schedule")
+        val configRef = db.collection("kullanicilar").document(teacherUid).collection("ayarlar").document("schedule")
         val configListener = configRef.addSnapshotListener { snapshot, error ->
             if (snapshot != null && snapshot.exists()) {
                 lessonCount = (snapshot.get("dersSayisi") as? Long ?: snapshot.get("ders_sayisi") as? Long ?: snapshot.get("lessonCount") as? Long)?.toInt() ?: 6
             }
         }
 
-        val dataRef = db.collection("users").document(teacherUid).collection("config").document("scheduleData")
+        val dataRef = db.collection("kullanicilar").document(teacherUid).collection("ayarlar").document("scheduleData")
         val dataListener = dataRef.addSnapshotListener { snapshot, error ->
             if (snapshot != null && snapshot.exists()) {
                 val slotsRaw = snapshot.get("slots") as? Map<*, *>
@@ -109,7 +109,7 @@ fun TeacherHomeContent(
             }
         }
 
-        val subjectsRef = db.collection("users").document(teacherUid).collection("subjects")
+        val subjectsRef = db.collection("kullanicilar").document(teacherUid).collection("dersler")
         val subjectsListener = subjectsRef.addSnapshotListener { snapshot, error ->
             if (snapshot != null) {
                 val subList = snapshot.documents.mapNotNull { doc ->

@@ -107,7 +107,7 @@ fun ScheduleTab(
 
     // Load Data using Snapshots
     DisposableEffect(teacherUid) {
-        val configRef = db.collection("users").document(teacherUid).collection("config").document("schedule")
+        val configRef = db.collection("kullanicilar").document(teacherUid).collection("ayarlar").document("schedule")
         val configListener = configRef.addSnapshotListener { snapshot, error ->
             isLoading = false
             if (snapshot != null && snapshot.exists()) {
@@ -144,7 +144,7 @@ fun ScheduleTab(
             }
         }
 
-        val dataRef = db.collection("users").document(teacherUid).collection("config").document("scheduleData")
+        val dataRef = db.collection("kullanicilar").document(teacherUid).collection("ayarlar").document("scheduleData")
         val dataListener = dataRef.addSnapshotListener { snapshot, error ->
             if (snapshot != null && snapshot.exists()) {
                 val slotsRaw = snapshot.get("slots") as? Map<*, *>
@@ -163,14 +163,14 @@ fun ScheduleTab(
             }
         }
 
-        val subjectsRef = db.collection("users").document(teacherUid).collection("subjects")
+        val subjectsRef = db.collection("kullanicilar").document(teacherUid).collection("dersler")
         val subjectsListener = subjectsRef.addSnapshotListener { snapshot, error ->
             if (snapshot != null) {
                 if (snapshot.isEmpty) {
                     // Populate default subjects in a non-blocking background thread
                     val batch = db.batch()
                     for (sub in defaultSubjects) {
-                        val newRef = db.collection("users").document(teacherUid).collection("subjects").document()
+                        val newRef = db.collection("kullanicilar").document(teacherUid).collection("dersler").document()
                         batch.set(newRef, mapOf(
                             "name" to sub.name,
                             "color" to sub.color,
@@ -268,8 +268,8 @@ fun ScheduleTab(
                             OutlinedButton(
                                 onClick = {
                                     // Reset local schedule custom slots
-                                    db.collection("users").document(teacherUid)
-                                        .collection("config").document("scheduleData")
+                                    db.collection("kullanicilar").document(teacherUid)
+                                        .collection("ayarlar").document("scheduleData")
                                         .set(mapOf(
                                             "slots" to emptyMap<String, String>(),
                                             "updatedAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
@@ -597,8 +597,8 @@ fun ScheduleTab(
                                     "ozelTeneffusSureleri" to customRecessedParsed
                                 )
 
-                                db.collection("users").document(teacherUid)
-                                    .collection("config").document("schedule")
+                                db.collection("kullanicilar").document(teacherUid)
+                                    .collection("ayarlar").document("schedule")
                                     .set(payload)
                                     .addOnSuccessListener {
                                         Toast.makeText(context, "Ayarlar Kaydedildi", Toast.LENGTH_SHORT).show()
@@ -669,8 +669,8 @@ fun ScheduleTab(
                                         val updatedSlots = scheduleData.slots.toMutableMap().apply {
                                             put(slotKey, sub.id)
                                         }
-                                        db.collection("users").document(teacherUid)
-                                            .collection("config").document("scheduleData")
+                                        db.collection("kullanicilar").document(teacherUid)
+                                            .collection("ayarlar").document("scheduleData")
                                             .set(mapOf(
                                                 "slots" to updatedSlots,
                                                 "updatedAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
@@ -696,8 +696,8 @@ fun ScheduleTab(
                                         val updatedSlots = scheduleData.slots.toMutableMap().apply {
                                             remove(slotKey)
                                         }
-                                        db.collection("users").document(teacherUid)
-                                            .collection("config").document("scheduleData")
+                                        db.collection("kullanicilar").document(teacherUid)
+                                            .collection("ayarlar").document("scheduleData")
                                             .set(mapOf(
                                                 "slots" to updatedSlots,
                                                 "updatedAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
@@ -824,8 +824,8 @@ fun ScheduleTab(
                             OutlinedButton(
                                 onClick = {
                                     editingSubject?.let { sub ->
-                                        db.collection("users").document(teacherUid)
-                                            .collection("subjects").document(sub.id)
+                                        db.collection("kullanicilar").document(teacherUid)
+                                            .collection("dersler").document(sub.id)
                                             .delete()
                                             .addOnSuccessListener {
                                                 isSubjectEditOpen = false
@@ -863,9 +863,9 @@ fun ScheduleTab(
                                     "updatedAt" to FieldValue.serverTimestamp()
                                 )
 
-                                val targetDoc = editingSubject?.id ?: db.collection("users").document(teacherUid).collection("subjects").document().id
-                                db.collection("users").document(teacherUid)
-                                    .collection("subjects").document(targetDoc)
+                                val targetDoc = editingSubject?.id ?: db.collection("kullanicilar").document(teacherUid).collection("dersler").document().id
+                                db.collection("kullanicilar").document(teacherUid)
+                                    .collection("dersler").document(targetDoc)
                                     .set(model)
                                     .addOnSuccessListener {
                                         isSubjectEditOpen = false
