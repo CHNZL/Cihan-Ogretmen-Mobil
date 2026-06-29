@@ -36,6 +36,7 @@ fun StudentsTab(
 ) {
     val coroutineScope = rememberCoroutineScope()
     val firestoreRepository = remember { FirestoreRepository() }
+    val context = androidx.compose.ui.platform.LocalContext.current
     
     var students by remember { mutableStateOf<List<Student>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
@@ -44,6 +45,8 @@ fun StudentsTab(
     var sortBy by remember { mutableStateOf("Öğrenci No") }
     
     var showAddDialog by remember { mutableStateOf(false) }
+    var showUploadDialog by remember { mutableStateOf(false) }
+    var showDeleteAllDialog by remember { mutableStateOf(false) }
     var studentToView by remember { mutableStateOf<Student?>(null) }
     var studentToEdit by remember { mutableStateOf<Student?>(null) }
 
@@ -142,26 +145,6 @@ fun StudentsTab(
                 onClick = { activeFilter = "Doğum Günü" },
                 modifier = Modifier.weight(1f)
             )
-            
-            androidx.compose.material3.Card(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(52.dp)
-                    .clickable { showAddDialog = true },
-                shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
-                colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
-                elevation = androidx.compose.material3.CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                androidx.compose.foundation.layout.Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onPrimary)
-                        Text("Ekle", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
         }
         
         Spacer(modifier = Modifier.height(8.dp))
@@ -202,6 +185,55 @@ fun StudentsTab(
                     contentDescription = "Sırala",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Button(
+                onClick = { showAddDialog = true },
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 12.dp)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("Ekle", fontSize = 12.sp, maxLines = 1)
+            }
+            OutlinedButton(
+                onClick = { showUploadDialog = true },
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 12.dp)
+            ) {
+                Icon(Icons.Default.UploadFile, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("Liste Yükle", fontSize = 12.sp, maxLines = 1)
+            }
+            OutlinedButton(
+                onClick = { 
+                    CsvExportUtils.exportClassList(context, students)
+                },
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 12.dp)
+            ) {
+                Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("İndir", fontSize = 12.sp, maxLines = 1)
+            }
+            Button(
+                onClick = { showDeleteAllDialog = true },
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer, contentColor = MaterialTheme.colorScheme.onErrorContainer),
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 12.dp)
+            ) {
+                Icon(Icons.Default.DeleteSweep, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("Tümünü Sil", fontSize = 12.sp, maxLines = 1)
             }
         }
         
@@ -409,6 +441,87 @@ fun StudentsTab(
                     firestoreRepository.deleteStudent(userData.teacherUid, studentId)
                     studentToEdit = null
                     refreshData()
+                }
+            }
+        )
+    }
+
+    if (showUploadDialog) {
+        val csvPickerLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+            androidx.activity.result.contract.ActivityResultContracts.GetContent()
+        ) { uri ->
+            if (uri != null) {
+                coroutineScope.launch {
+                    isLoading = true
+                    val importedStudents = CsvExportUtils.importClassListFromCsv(context, uri)
+                    importedStudents.forEach { student ->
+                        firestoreRepository.addStudent(userData.teacherUid, student.copy(teacherUid = userData.teacherUid))
+                    }
+                    showUploadDialog = false
+                    refreshData()
+                }
+            }
+        }
+        
+        AlertDialog(
+            onDismissRequest = { showUploadDialog = false },
+            title = { Text("Listeyi Excel'den Yükle", fontWeight = FontWeight.Bold) },
+            text = {
+                Column {
+                    Text("Öğrenci listenizi CSV formatında (.csv) toplu olarak yükleyin.", style = MaterialTheme.typography.bodyMedium)
+                    Spacer(Modifier.height(16.dp))
+                    OutlinedButton(
+                        onClick = { CsvExportUtils.exportClassListTemplate(context) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Örnek Şablonu İndir")
+                    }
+                    Spacer(Modifier.height(16.dp))
+                    Button(
+                        onClick = { csvPickerLauncher.launch("*/*") },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.onSurfaceVariant)
+                    ) {
+                        Icon(Icons.Default.UploadFile, contentDescription = null, modifier = Modifier.size(32.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Dosyayı Seç")
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showUploadDialog = false }) {
+                    Text("Kapat")
+                }
+            }
+        )
+    }
+
+    if (showDeleteAllDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteAllDialog = false },
+            icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+            title = { Text("Tümünü Silmek İstiyor musunuz?", fontWeight = FontWeight.Bold) },
+            text = { Text("TÜM sınıf listesini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz!") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showDeleteAllDialog = false
+                        coroutineScope.launch {
+                            isLoading = true
+                            firestoreRepository.deleteAllStudents(userData.teacherUid)
+                            refreshData()
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Evet, Hepsini Sil")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { showDeleteAllDialog = false }) {
+                    Text("İptal")
                 }
             }
         )

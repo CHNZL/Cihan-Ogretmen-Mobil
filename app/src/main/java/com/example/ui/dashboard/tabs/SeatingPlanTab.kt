@@ -174,13 +174,13 @@ fun SeatingPlanTab(userData: UserData) {
             students = repo.getStudents(teacherUid)
 
             // Fetch seating config
-            val configSnapshot = db.collection("users").document(teacherUid).collection("config").document("seating").get().await()
+            val configSnapshot = db.collection("kullanicilar").document(teacherUid).collection("ayarlar").document("seating").get().await()
             if (configSnapshot.exists()) {
                 seatingConfig = configSnapshot.toObject(SeatingConfig::class.java) ?: SeatingConfig()
             }
 
             // Fetch seating plan
-            val planSnapshot = db.collection("users").document(teacherUid).collection("config").document("seatingPlan").get().await()
+            val planSnapshot = db.collection("kullanicilar").document(teacherUid).collection("ayarlar").document("seatingPlan").get().await()
             if (planSnapshot.exists()) {
                 val planData = planSnapshot.toObject(SeatingPlanData::class.java)
                 if (planData != null) {
@@ -254,10 +254,10 @@ fun SeatingPlanTab(userData: UserData) {
                     Button(
                         onClick = {
                             isLoading = true
-                            db.collection("users").document(teacherUid).collection("config").document("seating")
+                            db.collection("kullanicilar").document(teacherUid).collection("ayarlar").document("seating")
                                 .set(seatingConfig)
                                 .addOnSuccessListener {
-                                    db.collection("users").document(teacherUid).collection("config").document("seatingPlan")
+                                    db.collection("kullanicilar").document(teacherUid).collection("ayarlar").document("seatingPlan")
                                         .set(SeatingPlanData(plan = seatingPlan))
                                         .addOnSuccessListener {
                                             isUnsavedPlan = false

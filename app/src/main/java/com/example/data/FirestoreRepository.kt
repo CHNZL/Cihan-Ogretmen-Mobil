@@ -25,7 +25,7 @@ class FirestoreRepository {
     suspend fun getUserDocument(userId: String): UserDocument? {
         return try {
             android.util.Log.d("FirestoreRepository", "getUserDocument for UID: $userId")
-            val doc = db.collection("users").document(userId).get().awaitWithTimeout()
+            val doc = db.collection("kullanicilar").document(userId).get().awaitWithTimeout()
             if (doc != null && doc.exists()) {
                 val email = doc.getString("email") ?: ""
                 val profileType = doc.getString("profileType") ?: ""
@@ -49,14 +49,14 @@ class FirestoreRepository {
         val cleanEmail = email.trim().lowercase()
         return try {
             android.util.Log.d("FirestoreRepository", "getUserDocumentByEmail query: $cleanEmail")
-            var snapshot = db.collection("users")
+            var snapshot = db.collection("kullanicilar")
                 .whereEqualTo("email", cleanEmail)
                 .get()
                 .awaitWithTimeout()
             
             if (snapshot == null || snapshot.isEmpty) {
                 // Try case-exact query as fallback
-                snapshot = db.collection("users")
+                snapshot = db.collection("kullanicilar")
                     .whereEqualTo("email", email.trim())
                     .get()
                     .awaitWithTimeout()
@@ -85,11 +85,11 @@ class FirestoreRepository {
     suspend fun getLinkedStudentsForParent(parentEmail: String): List<Pair<String, Student>> {
         if (parentEmail.isEmpty()) return emptyList()
         return try {
-            val query1 = db.collectionGroup("students")
+            val query1 = db.collectionGroup("ogrenciler")
                 .whereEqualTo("parentEmail", parentEmail)
                 .get()
                 .awaitWithTimeout()
-            val query2 = db.collectionGroup("students")
+            val query2 = db.collectionGroup("ogrenciler")
                 .whereEqualTo("parentEmail2", parentEmail)
                 .get()
                 .awaitWithTimeout()
@@ -116,7 +116,7 @@ class FirestoreRepository {
     suspend fun getStudents(teacherUid: String): List<Student> {
         android.util.Log.d("FirestoreRepository", "getStudents called with teacherUid: $teacherUid")
         return try {
-            val snapshot = db.collection("users").document(teacherUid).collection("students")
+            val snapshot = db.collection("kullanicilar").document(teacherUid).collection("ogrenciler")
                 .get()
                 .awaitWithTimeout()
             
@@ -130,19 +130,22 @@ class FirestoreRepository {
             snapshot.documents.mapNotNull { doc ->
                 try {
                     val id = doc.id
-                    val name = doc.getString("name") ?: ""
-                    val surname = doc.getString("surname") ?: ""
+                    val name = doc.getString("name") ?: doc.getString("ad") ?: ""
+                    val surname = doc.getString("surname") ?: doc.getString("soyad") ?: ""
                     
                     // studentNo could be saved as number or string in Firestore
                     val studentNo = doc.getString("studentNo") 
+                        ?: doc.getString("ogrenciNo")
                         ?: doc.getLong("studentNo")?.toString() 
+                        ?: doc.getLong("ogrenciNo")?.toString()
                         ?: doc.getDouble("studentNo")?.toInt()?.toString() 
+                        ?: doc.getDouble("ogrenciNo")?.toInt()?.toString()
                         ?: ""
                     
-                    val gender = doc.getString("gender") ?: ""
-                    val birthDate = doc.getString("birthDate") ?: ""
-                    val parentEmail = doc.getString("parentEmail") ?: ""
-                    val parentEmail2 = doc.getString("parentEmail2") ?: ""
+                    val gender = doc.getString("gender") ?: doc.getString("cinsiyet") ?: ""
+                    val birthDate = doc.getString("birthDate") ?: doc.getString("dogumTarihi") ?: ""
+                    val parentEmail = doc.getString("parentEmail") ?: doc.getString("veliEposta") ?: ""
+                    val parentEmail2 = doc.getString("parentEmail2") ?: doc.getString("veliEposta2") ?: ""
                     val currentTeacherUid = doc.getString("teacherUid") ?: teacherUid
                     
                     // stars can be number (Long/Double)
@@ -198,7 +201,7 @@ class FirestoreRepository {
 
     suspend fun addStudent(teacherUid: String, student: Student) {
         try {
-            val docRef = db.collection("users").document(teacherUid).collection("students").document()
+            val docRef = db.collection("kullanicilar").document(teacherUid).collection("ogrenciler").document()
             val newStudent = student.copy(id = docRef.id)
             docRef.set(newStudent).awaitWithTimeout()
         } catch (e: Exception) {
@@ -208,7 +211,7 @@ class FirestoreRepository {
 
     suspend fun updateStudent(teacherUid: String, student: Student) {
         try {
-            db.collection("users").document(teacherUid).collection("students").document(student.id)
+            db.collection("kullanicilar").document(teacherUid).collection("ogrenciler").document(student.id)
                 .set(student).awaitWithTimeout()
         } catch (e: Exception) {
             e.printStackTrace()
@@ -217,8 +220,23 @@ class FirestoreRepository {
 
     suspend fun deleteStudent(teacherUid: String, studentId: String) {
         try {
-            db.collection("users").document(teacherUid).collection("students").document(studentId)
+            db.collection("kullanicilar").document(teacherUid).collection("ogrenciler").document(studentId)
                 .delete().awaitWithTimeout()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    suspend fun deleteAllStudents(teacherUid: String) {
+        try {
+            val snapshot = db.collection("kullanicilar").document(teacherUid).collection("ogrenciler")
+                .get().awaitWithTimeout()
+            
+            val batch = db.batch()
+            snapshot?.documents?.forEach { doc ->
+                batch.delete(doc.reference)
+            }
+            batch.commit().awaitWithTimeout()
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -236,7 +254,7 @@ class FirestoreRepository {
                 "district" to "Merkez",
                 "schoolName" to "SÜLEYMAN SAMİ KEPENEK İLKOKULU"
             )
-            db.collection("users").document(teacherUid).set(userDocMap).awaitWithTimeout()
+            db.collection("kullanicilar").document(teacherUid).set(userDocMap).awaitWithTimeout()
             android.util.Log.d("FirestoreRepository", "Created users/$teacherUid profile document")
 
             // 2. Fetch pre-existing students for merging (DO NOT DELETE to preserve stars)
@@ -337,7 +355,7 @@ class FirestoreRepository {
                      est.surname.trim().lowercase() == student.surname.trim().lowercase())
                 }
                 if (existingStudent != null) {
-                    val docRef = db.collection("users").document(teacherUid).collection("students").document(existingStudent.id)
+                    val docRef = db.collection("kullanicilar").document(teacherUid).collection("ogrenciler").document(existingStudent.id)
                     val finalStudent = student.copy(
                         id = existingStudent.id,
                         stars = existingStudent.stars,
@@ -345,7 +363,7 @@ class FirestoreRepository {
                     )
                     docRef.set(finalStudent).awaitWithTimeout()
                 } else {
-                    val docRef = db.collection("users").document(teacherUid).collection("students").document()
+                    val docRef = db.collection("kullanicilar").document(teacherUid).collection("ogrenciler").document()
                     val finalStudent = student.copy(id = docRef.id)
                     docRef.set(finalStudent).awaitWithTimeout()
                 }
@@ -369,7 +387,7 @@ class FirestoreRepository {
                 "district" to "Merkez",
                 "schoolName" to "SÜLEYMAN SAMİ KEPENEK İLKOKULU"
             )
-            db.collection("users").document(teacherUid).set(userDocMap).awaitWithTimeout()
+            db.collection("kullanicilar").document(teacherUid).set(userDocMap).awaitWithTimeout()
             android.util.Log.d("FirestoreRepository", "Created users/$teacherUid profile document")
 
             // 2. Fetch pre-existing students for merging (NEVER DELETE to preserve stars)
@@ -412,7 +430,7 @@ class FirestoreRepository {
                 }
                 
                 if (existingStudent != null) {
-                    val docRef = db.collection("users").document(teacherUid).collection("students").document(existingStudent.id)
+                    val docRef = db.collection("kullanicilar").document(teacherUid).collection("ogrenciler").document(existingStudent.id)
                     val finalStudent = student.copy(
                         id = existingStudent.id,
                         stars = existingStudent.stars,  // PRESERVE the real active stars!
@@ -420,7 +438,7 @@ class FirestoreRepository {
                     )
                     docRef.set(finalStudent).awaitWithTimeout()
                 } else {
-                    val docRef = db.collection("users").document(teacherUid).collection("students").document()
+                    val docRef = db.collection("kullanicilar").document(teacherUid).collection("ogrenciler").document()
                     val finalStudent = student.copy(
                         id = docRef.id,
                         starHistory = emptyList()
@@ -450,7 +468,7 @@ class FirestoreRepository {
 
     suspend fun getReadingRecords(uid: String, studentId: String): List<ReadingRecord> {
         return try {
-            db.collection("users").document(uid).collection("readingRecords")
+            db.collection("kullanicilar").document(uid).collection("okumaKayitlari")
                 .whereEqualTo("studentId", studentId)
                 .get()
                 .awaitWithTimeout()
@@ -468,7 +486,7 @@ class FirestoreRepository {
     ) {
         if (teacherUid.isEmpty()) return
         try {
-            val docRef = db.collection("users").document(teacherUid).collection("config").document("groupings")
+            val docRef = db.collection("kullanicilar").document(teacherUid).collection("ayarlar").document("groupings")
             val groupsList = groups.mapIndexed { idx, groupPair ->
                 mapOf(
                     "id" to "group-${idx + 1}",
@@ -491,7 +509,7 @@ class FirestoreRepository {
     suspend fun getGroupings(teacherUid: String): Pair<Boolean, List<Pair<String, List<String>>>>? {
         if (teacherUid.isEmpty()) return null
         return try {
-            val doc = db.collection("users").document(teacherUid).collection("config").document("groupings")
+            val doc = db.collection("kullanicilar").document(teacherUid).collection("ayarlar").document("groupings")
                 .get()
                 .awaitWithTimeout()
             if (doc != null && doc.exists()) {
@@ -547,7 +565,7 @@ class FirestoreRepository {
             map.putAll(extraData)
         }
 
-        db.collection("users").document(teacherUid)
+        db.collection("kullanicilar").document(teacherUid)
             .collection("remote_control").document("state")
             .set(map)
             .addOnFailureListener {
@@ -557,7 +575,7 @@ class FirestoreRepository {
         // ALSO write to fallback 'cihan_ozel_web_uid' if this is an admin/cihan session to guarantee pairing
         if (teacherUid != "cihan_ozel_web_uid") {
             try {
-                db.collection("users").document("cihan_ozel_web_uid")
+                db.collection("kullanicilar").document("cihan_ozel_web_uid")
                     .collection("remote_control").document("state")
                     .set(map)
                     .addOnFailureListener {

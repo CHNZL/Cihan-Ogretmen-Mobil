@@ -71,7 +71,7 @@ fun LuckyStudentTab(userData: UserData) {
             "selectedStudentIds" to ids,
             "updatedAt" to SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault()).format(Date())
         )
-        db.collection("users").document(teacherUid).collection("settings").document("luckyStudent")
+        db.collection("kullanicilar").document(teacherUid).collection("ayarlar").document("luckyStudent")
             .set(data, com.google.firebase.firestore.SetOptions.merge())
     }
     
@@ -93,7 +93,7 @@ fun LuckyStudentTab(userData: UserData) {
             students = allStudents
             
             var isFirstLoad = true
-            listener = db.collection("users").document(teacherUid).collection("settings").document("luckyStudent")
+            listener = db.collection("kullanicilar").document(teacherUid).collection("ayarlar").document("luckyStudent")
                 .addSnapshotListener { snapshot, e ->
                     if (e != null) {
                         isLoading = false

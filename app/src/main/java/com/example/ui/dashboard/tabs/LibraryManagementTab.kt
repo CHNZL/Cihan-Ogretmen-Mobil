@@ -92,7 +92,7 @@ fun LibraryManagementTab(
     val dateFormatter = remember { SimpleDateFormat("dd.MM.yyyy", Locale("tr", "TR")) }
 
     DisposableEffect(teacherUid) {
-        val booksListener = db.collection("users").document(teacherUid).collection("books")
+        val booksListener = db.collection("kullanicilar").document(teacherUid).collection("kitaplar")
             .addSnapshotListener { snapshot, _ ->
                 if (snapshot != null) {
                     books = snapshot.documents.mapNotNull { doc ->
@@ -101,7 +101,7 @@ fun LibraryManagementTab(
                 }
             }
             
-        val studentsListener = db.collection("users").document(teacherUid).collection("students")
+        val studentsListener = db.collection("kullanicilar").document(teacherUid).collection("ogrenciler")
             .addSnapshotListener { snapshot, _ ->
                 if (snapshot != null) {
                     students = snapshot.documents.mapNotNull { doc ->
@@ -110,7 +110,7 @@ fun LibraryManagementTab(
                 }
             }
             
-        val recordsListener = db.collection("users").document(teacherUid).collection("readingRecords")
+        val recordsListener = db.collection("kullanicilar").document(teacherUid).collection("okumaKayitlari")
             .addSnapshotListener { snapshot, _ ->
                 if (snapshot != null) {
                     readingRecords = snapshot.documents.mapNotNull { doc ->
@@ -120,7 +120,7 @@ fun LibraryManagementTab(
                 }
             }
 
-        val evaluationsListener = db.collection("users").document(teacherUid).collection("readingEvaluations")
+        val evaluationsListener = db.collection("kullanicilar").document(teacherUid).collection("okumaDegerlendirmeleri")
             .addSnapshotListener { snapshot, _ ->
                 if (snapshot != null) {
                     readingEvaluations = snapshot.documents.mapNotNull { doc ->
@@ -142,11 +142,36 @@ fun LibraryManagementTab(
         AddBookDialog(
             userId = teacherUid,
             books = books,
+            students = students,
+            readingRecords = readingRecords,
             onDismiss = { showAddDialog = false },
-            onAdd = { newBook ->
+            onAdd = { newBook, assignedStudent ->
                 scope.launch {
                     try {
-                        db.collection("users").document(teacherUid).collection("books").add(newBook).await()
+                        val bookRef = db.collection("kullanicilar").document(teacherUid).collection("kitaplar").add(newBook).await()
+                        
+                        if (assignedStudent != null) {
+                            val updates = hashMapOf<String, Any>(
+                                "currentStudentId" to assignedStudent.id,
+                                "currentStudentName" to assignedStudent.name,
+                                "assignmentDate" to FieldValue.serverTimestamp(),
+                                "status" to "Okunuyor"
+                            )
+                            bookRef.update(updates).await()
+
+                            val record = hashMapOf(
+                                "bookId" to bookRef.id,
+                                "bookName" to newBook.name,
+                                "studentId" to assignedStudent.id,
+                                "studentNo" to assignedStudent.studentNo,
+                                "studentName" to assignedStudent.name,
+                                "teacherUid" to teacherUid,
+                                "assignedAt" to FieldValue.serverTimestamp(),
+                                "returnedAt" to null,
+                                "status" to "active"
+                            )
+                            db.collection("kullanicilar").document(teacherUid).collection("okumaKayitlari").add(record).await()
+                        }
                         showAddDialog = false
                     } catch (e: Exception) {
                         e.printStackTrace()
@@ -177,11 +202,12 @@ fun LibraryManagementTab(
                         0 -> LibraryListScreen(
                                 books = books, 
                                 students = students, 
+                                readingRecords = readingRecords,
                                 teacherUid = teacherUid, 
                                 db = db,
                                 onEditClicked = { /* TODO implement edit */ },
                                 onDeleteClicked = { bookId ->
-                                    scope.launch { db.collection("users").document(teacherUid).collection("books").document(bookId).delete().await() }
+                                    scope.launch { db.collection("kullanicilar").document(teacherUid).collection("kitaplar").document(bookId).delete().await() }
                                 },
                                 onMarkAsReadByAll = { book ->
                                     scope.launch {
@@ -192,33 +218,56 @@ fun LibraryManagementTab(
                                             "status" to "Rafta",
                                             "assignmentDate" to FieldValue.delete()
                                         )
-                                        db.collection("users").document(teacherUid).collection("books").document(book.id).update(updates).await()
+                                        db.collection("kullanicilar").document(teacherUid).collection("kitaplar").document(book.id).update(updates).await()
                                         
                                         // End any active reading records for this book
-                                        val recordsQuery = db.collection("users").document(teacherUid).collection("readingRecords")
+                                        val recordsQuery = db.collection("kullanicilar").document(teacherUid).collection("okumaKayitlari")
                                             .whereEqualTo("bookId", book.id)
                                             .get().await()
                                             
                                         for (doc in recordsQuery.documents) {
                                             if (!doc.contains("endDate") || doc.get("endDate") == null) {
-                                                db.collection("users").document(teacherUid).collection("readingRecords")
+                                                db.collection("kullanicilar").document(teacherUid).collection("okumaKayitlari")
                                                     .document(doc.id).update("endDate", FieldValue.serverTimestamp()).await()
                                             }
                                         }
 
-                                        // Now assign to everyone
+                                        // Only assign to students who haven't read it yet!
+                                        val readStudentIds = readingRecords.filter { it.bookId == book.id }.map { it.studentId }.toSet()
+                                        
+                                        val starsToAward = if (book.pageCount != null && book.pageCount > 0) {
+                                            kotlin.math.ceil(book.pageCount.toDouble() / 10.0).toInt()
+                                        } else 0
+                                        
                                         for (student in students) {
-                                            val record = hashMapOf(
-                                                "bookId" to book.id,
-                                                "bookName" to book.name,
-                                                "studentId" to student.id,
-                                                "studentName" to "${student.name} ${student.surname}",
-                                                "teacherUid" to teacherUid,
-                                                "startDate" to FieldValue.serverTimestamp(),
-                                                "endDate" to FieldValue.serverTimestamp(), // Instantly finished since they all read it
-                                                "createdAt" to FieldValue.serverTimestamp()
-                                            )
-                                            db.collection("users").document(teacherUid).collection("readingRecords").add(record).await()
+                                            if (student.id !in readStudentIds) {
+                                                val record = hashMapOf(
+                                                    "bookId" to book.id,
+                                                    "bookName" to book.name,
+                                                    "studentId" to student.id,
+                                                    "studentName" to "${student.name} ${student.surname}",
+                                                    "teacherUid" to teacherUid,
+                                                    "startDate" to FieldValue.serverTimestamp(),
+                                                    "endDate" to FieldValue.serverTimestamp(), // Instantly finished since they all read it
+                                                    "createdAt" to FieldValue.serverTimestamp()
+                                                )
+                                                db.collection("kullanicilar").document(teacherUid).collection("okumaKayitlari").add(record).await()
+                                                
+                                                // Star logic
+                                                if (starsToAward > 0) {
+                                                    val newHistoryItem = mapOf(
+                                                        "category" to "Kitap Kurdu Yıldızı",
+                                                        "description" to "${book.name} (${book.pageCount} Sayfa)",
+                                                        "amount" to starsToAward,
+                                                        "timestamp" to System.currentTimeMillis()
+                                                    )
+                                                    db.collection("kullanicilar").document(teacherUid).collection("ogrenciler").document(student.id)
+                                                        .update(
+                                                            "stars", FieldValue.increment(starsToAward.toLong()),
+                                                            "starHistory", FieldValue.arrayUnion(newHistoryItem)
+                                                        ).await()
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -248,6 +297,7 @@ fun LibraryManagementTab(
 fun LibraryListScreen(
     books: List<LibraryBook>,
     students: List<Student>,
+    readingRecords: List<LibraryReadingRecord>,
     teacherUid: String,
     db: FirebaseFirestore,
     onEditClicked: (LibraryBook) -> Unit,
@@ -255,6 +305,7 @@ fun LibraryListScreen(
     onMarkAsReadByAll: (LibraryBook) -> Unit
 ) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     var showAssignDialog by remember { mutableStateOf<LibraryBook?>(null) }
     var bookToDelete by remember { mutableStateOf<LibraryBook?>(null) }
     var bookToMarkByAll by remember { mutableStateOf<LibraryBook?>(null) }
@@ -293,6 +344,20 @@ fun LibraryListScreen(
             students = students,
             onDismiss = { showAssignDialog = null },
             onAssign = { student ->
+                // Çift Kitap Engeli
+                val alreadyHasBook = books.any { it.currentStudentId == student.id }
+                if (alreadyHasBook) {
+                    android.widget.Toast.makeText(context, "${student.name} isimli öğrencinin üzerinde zaten bir kitap var!", android.widget.Toast.LENGTH_SHORT).show()
+                    return@AssignBookDialog
+                }
+                
+                // Mükerrer Okuma Engeli
+                val alreadyRead = readingRecords.any { it.bookId == showAssignDialog!!.id && it.studentId == student.id }
+                if (alreadyRead) {
+                    android.widget.Toast.makeText(context, "${student.name} bu kitabı zaten okumuş!", android.widget.Toast.LENGTH_SHORT).show()
+                    return@AssignBookDialog
+                }
+                
                 scope.launch {
                     val updates = hashMapOf<String, Any>(
                         "currentStudentId" to student.id,
@@ -300,7 +365,7 @@ fun LibraryListScreen(
                         "status" to "Okunuyor",
                         "assignmentDate" to FieldValue.serverTimestamp()
                     )
-                    db.collection("users").document(teacherUid).collection("books").document(showAssignDialog!!.id).update(updates).await()
+                    db.collection("kullanicilar").document(teacherUid).collection("kitaplar").document(showAssignDialog!!.id).update(updates).await()
                     
                     val record = hashMapOf(
                         "bookId" to showAssignDialog!!.id,
@@ -311,7 +376,7 @@ fun LibraryListScreen(
                         "startDate" to FieldValue.serverTimestamp(),
                         "createdAt" to FieldValue.serverTimestamp()
                     )
-                    db.collection("users").document(teacherUid).collection("readingRecords").add(record).await()
+                    db.collection("kullanicilar").document(teacherUid).collection("okumaKayitlari").add(record).await()
                     showAssignDialog = null
                 }
             }
@@ -389,24 +454,43 @@ fun LibraryListScreen(
                             Button(
                                 onClick = { 
                                     scope.launch {
+                                        val studentId = book.currentStudentId ?: return@launch
+                                        val student = students.find { it.id == studentId }
+                                        
                                         val updates = hashMapOf<String, Any?>(
                                             "currentStudentId" to null,
                                             "currentStudentName" to null,
                                             "status" to "Rafta",
                                             "assignmentDate" to null
                                         )
-                                        db.collection("users").document(teacherUid).collection("books").document(book.id).update(updates).await()
+                                        db.collection("kullanicilar").document(teacherUid).collection("kitaplar").document(book.id).update(updates).await()
                                         
-                                        val recordsQuery = db.collection("users").document(teacherUid).collection("readingRecords")
+                                        val recordsQuery = db.collection("kullanicilar").document(teacherUid).collection("okumaKayitlari")
                                             .whereEqualTo("bookId", book.id)
-                                            .whereEqualTo("studentId", book.currentStudentId)
+                                            .whereEqualTo("studentId", studentId)
                                             .get().await()
                                             
                                         for (doc in recordsQuery.documents) {
                                             if (!doc.contains("endDate") || doc.get("endDate") == null) {
-                                                db.collection("users").document(teacherUid).collection("readingRecords")
+                                                db.collection("kullanicilar").document(teacherUid).collection("okumaKayitlari")
                                                     .document(doc.id).update("endDate", FieldValue.serverTimestamp()).await()
                                             }
+                                        }
+                                        
+                                        // Star logic
+                                        if (student != null && book.pageCount != null && book.pageCount > 0) {
+                                            val starsToAward = kotlin.math.ceil(book.pageCount.toDouble() / 10.0).toInt()
+                                            val newHistoryItem = mapOf(
+                                                "category" to "Kitap Kurdu Yıldızı",
+                                                "description" to "${book.name} (${book.pageCount} Sayfa)",
+                                                "amount" to starsToAward,
+                                                "timestamp" to System.currentTimeMillis()
+                                            )
+                                            db.collection("kullanicilar").document(teacherUid).collection("ogrenciler").document(student.id)
+                                                .update(
+                                                    "stars", FieldValue.increment(starsToAward.toLong()),
+                                                    "starHistory", FieldValue.arrayUnion(newHistoryItem)
+                                                ).await()
                                         }
                                     }
                                 },
@@ -513,7 +597,7 @@ fun ReadingRecordsScreen(
                             IconButton(
                                 onClick = {
                                     scope.launch {
-                                        db.collection("users").document(teacherUid).collection("readingRecords").document(record.id).delete().await()
+                                        db.collection("kullanicilar").document(teacherUid).collection("okumaKayitlari").document(record.id).delete().await()
                                     }
                                 },
                                 modifier = Modifier.size(24.dp)
@@ -570,6 +654,12 @@ fun ReadingEvaluationScreen(
     Row(modifier = Modifier.fillMaxSize()) {
         // Books List (Left sidebar on large screens, or just a compact list at top on mobile)
         Column(modifier = Modifier.weight(0.35f).fillMaxHeight().background(Color.White).padding(8.dp)) {
+            Text(
+                text = "⚠️ Sadece tüm sınıf tarafından okunan kitaplar değerlendirilir.",
+                fontSize = 11.sp,
+                color = Color(0xFFEAB308),
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
             Text("Kitap Seçin", fontWeight = FontWeight.Bold, color = Color.Gray, modifier = Modifier.padding(8.dp))
             if (booksToEvaluate.isEmpty()) {
                 Text("Henüz tüm sınıfın okuduğu bir kitap bulunmuyor.", color = Color.Gray, fontSize = 12.sp, modifier = Modifier.padding(8.dp))
@@ -652,10 +742,10 @@ fun ReadingEvaluationScreen(
                                                 "teacherUid" to teacherUid,
                                                 field to value
                                             )
-                                            db.collection("users").document(teacherUid).collection("readingEvaluations").add(newEval).await()
+                                            db.collection("kullanicilar").document(teacherUid).collection("okumaDegerlendirmeleri").add(newEval).await()
                                         } else {
                                             // Update existing
-                                            db.collection("users").document(teacherUid).collection("readingEvaluations").document(evaluation.id).update(field, value).await()
+                                            db.collection("kullanicilar").document(teacherUid).collection("okumaDegerlendirmeleri").document(evaluation.id).update(field, value).await()
                                         }
                                     }
                                 }
@@ -673,17 +763,33 @@ fun ReadingEvaluationScreen(
     }
 }
 
+fun String.toTitleCase(): String {
+    return this.trim().split("\\s+".toRegex()).joinToString(" ") { word ->
+        if (word.isNotEmpty()) {
+            word.substring(0, 1).uppercase(Locale("tr", "TR")) + word.substring(1).lowercase(Locale("tr", "TR"))
+        } else {
+            ""
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddBookDialog(
     userId: String,
     books: List<LibraryBook>,
+    students: List<Student>,
+    readingRecords: List<LibraryReadingRecord>,
     onDismiss: () -> Unit,
-    onAdd: (LibraryBook) -> Unit
+    onAdd: (LibraryBook, Student?) -> Unit
 ) {
     var name by remember { mutableStateOf("") }
     var author by remember { mutableStateOf("") }
     var pageCount by remember { mutableStateOf("") }
+    var selectedStudent by remember { mutableStateOf<Student?>(null) }
+    var expanded by remember { mutableStateOf(false) }
+    
+    val context = LocalContext.current
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -711,20 +817,87 @@ fun AddBookDialog(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp)
                 )
+
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = !expanded }
+                ) {
+                    OutlinedTextField(
+                        readOnly = true,
+                        value = selectedStudent?.let { "${it.name} ${it.surname}" } ?: "Öğrenciye Ata (İsteğe Bağlı)",
+                        onValueChange = { },
+                        label = { Text("Öğrenci (Opsiyonel)") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        modifier = Modifier.menuAnchor().fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Kimseye Atama") },
+                            onClick = {
+                                selectedStudent = null
+                                expanded = false
+                            }
+                        )
+                        students.forEach { student ->
+                            DropdownMenuItem(
+                                text = { Text("${student.name} ${student.surname}") },
+                                onClick = {
+                                    selectedStudent = student
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
             }
         },
         confirmButton = {
             Button(
                 onClick = {
-                    val nextRegNo = (books.maxOfOrNull { it.registrationNo } ?: 0L) + 1
+                    if (name.isBlank()) {
+                        android.widget.Toast.makeText(context, "Lütfen kitap adını giriniz.", android.widget.Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
+                    
+                    if (selectedStudent != null) {
+                        val alreadyHasBook = books.any { it.currentStudentId == selectedStudent!!.id }
+                        if (alreadyHasBook) {
+                            android.widget.Toast.makeText(context, "${selectedStudent!!.name} zaten bir kitap okuyor. Kitap başarıyla kitaplığa eklendi ancak atama işlemi gerçekleştirilemedi.", android.widget.Toast.LENGTH_LONG).show()
+                            selectedStudent = null // We proceed with adding, but cancel assignment
+                        }
+                    }
+
+                    val formattedName = name.toTitleCase()
+                    val formattedAuthor = author.toTitleCase()
+
+                    val isDuplicate = books.any { it.name.equals(formattedName, ignoreCase = true) }
+                    if (isDuplicate) {
+                        android.widget.Toast.makeText(context, "Bu isimde bir kitap zaten kitaplığınızda mevcut. Lütfen kitap ismini kontrol edin veya farklı bir isim verin.", android.widget.Toast.LENGTH_LONG).show()
+                        return@Button
+                    }
+
+                    val existingNos = books.map { it.registrationNo }.sorted()
+                    var nextNo = 1L
+                    for (no in existingNos) {
+                        if (no == nextNo) {
+                            nextNo++
+                        } else if (no > nextNo) {
+                            break
+                        }
+                    }
+
                     val newBook = LibraryBook(
-                        registrationNo = nextRegNo,
-                        name = name,
-                        author = author,
-                        pageCount = pageCount.toLongOrNull(),
+                        registrationNo = nextNo,
+                        name = formattedName,
+                        author = formattedAuthor.takeIf { it.isNotBlank() },
+                        pageCount = pageCount.toLongOrNull() ?: 0L,
                         status = "Rafta"
                     )
-                    onAdd(newBook)
+                    onAdd(newBook, selectedStudent)
                 },
                 shape = RoundedCornerShape(8.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6366F1))
