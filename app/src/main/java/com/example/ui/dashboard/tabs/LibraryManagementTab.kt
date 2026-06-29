@@ -82,10 +82,25 @@ fun LibraryManagementTab(
     val teacherUid = userData.teacherUid.takeIf { it.isNotBlank() } ?: userData.userId
     val scope = rememberCoroutineScope()
     
-    var books by remember { mutableStateOf<List<LibraryBook>>(emptyList()) }
-    var students by remember { mutableStateOf<List<Student>>(emptyList()) }
-    var readingRecords by remember { mutableStateOf<List<LibraryReadingRecord>>(emptyList()) }
-    var readingEvaluations by remember { mutableStateOf<List<LibraryReadingEvaluation>>(emptyList()) }
+    val currentUserUid = remember { com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid }
+    val writeUid = if (currentUserUid != null && currentUserUid != teacherUid) currentUserUid else teacherUid
+    
+    var teacherBooks by remember { mutableStateOf<List<LibraryBook>>(emptyList()) }
+    var localBooks by remember { mutableStateOf<List<LibraryBook>>(emptyList()) }
+    
+    var teacherStudents by remember { mutableStateOf<List<Student>>(emptyList()) }
+    var localStudents by remember { mutableStateOf<List<Student>>(emptyList()) }
+    
+    var teacherRecords by remember { mutableStateOf<List<LibraryReadingRecord>>(emptyList()) }
+    var localRecords by remember { mutableStateOf<List<LibraryReadingRecord>>(emptyList()) }
+    
+    var teacherEvaluations by remember { mutableStateOf<List<LibraryReadingEvaluation>>(emptyList()) }
+    var localEvaluations by remember { mutableStateOf<List<LibraryReadingEvaluation>>(emptyList()) }
+
+    val books = (teacherBooks + localBooks).distinctBy { it.id }.sortedBy { it.registrationNo }
+    val students = (teacherStudents + localStudents).distinctBy { it.id }.sortedBy { it.name }
+    val readingRecords = (teacherRecords + localRecords).distinctBy { it.id }
+    val readingEvaluations = (teacherEvaluations + localEvaluations).distinctBy { it.id }
     
     var isLoading by remember { mutableStateOf(true) }
     
@@ -95,52 +110,100 @@ fun LibraryManagementTab(
         val booksListener = db.collection("users").document(teacherUid).collection("books")
             .addSnapshotListener { snapshot, _ ->
                 if (snapshot != null) {
-                    books = snapshot.documents.mapNotNull { doc ->
+                    teacherBooks = snapshot.documents.mapNotNull { doc ->
                         doc.toObject(LibraryBook::class.java)?.copy(id = doc.id)
-                    }.sortedBy { it.registrationNo }
+                    }
                 }
             }
+            
+        val localBooksListener = if (currentUserUid != null && currentUserUid != teacherUid) {
+            db.collection("users").document(currentUserUid).collection("books")
+                .addSnapshotListener { snapshot, _ ->
+                    if (snapshot != null) {
+                        localBooks = snapshot.documents.mapNotNull { doc ->
+                            doc.toObject(LibraryBook::class.java)?.copy(id = doc.id)
+                        }
+                    }
+                }
+        } else null
             
         val studentsListener = db.collection("users").document(teacherUid).collection("students")
             .addSnapshotListener { snapshot, _ ->
                 if (snapshot != null) {
-                    students = snapshot.documents.mapNotNull { doc ->
+                    teacherStudents = snapshot.documents.mapNotNull { doc ->
                         doc.toObject(Student::class.java)?.copy(id = doc.id)
-                    }.sortedBy { it.name }
+                    }
                 }
             }
+            
+        val localStudentsListener = if (currentUserUid != null && currentUserUid != teacherUid) {
+            db.collection("users").document(currentUserUid).collection("students")
+                .addSnapshotListener { snapshot, _ ->
+                    if (snapshot != null) {
+                        localStudents = snapshot.documents.mapNotNull { doc ->
+                            doc.toObject(Student::class.java)?.copy(id = doc.id)
+                        }
+                    }
+                }
+        } else null
             
         val recordsListener = db.collection("users").document(teacherUid).collection("readingRecords")
             .addSnapshotListener { snapshot, _ ->
                 if (snapshot != null) {
-                    readingRecords = snapshot.documents.mapNotNull { doc ->
+                    teacherRecords = snapshot.documents.mapNotNull { doc ->
                         doc.toObject(LibraryReadingRecord::class.java)?.copy(id = doc.id)
                     }
-                    // Continue loading if needed
                 }
             }
+            
+        val localRecordsListener = if (currentUserUid != null && currentUserUid != teacherUid) {
+            db.collection("users").document(currentUserUid).collection("readingRecords")
+                .addSnapshotListener { snapshot, _ ->
+                    if (snapshot != null) {
+                        localRecords = snapshot.documents.mapNotNull { doc ->
+                            doc.toObject(LibraryReadingRecord::class.java)?.copy(id = doc.id)
+                        }
+                    }
+                }
+        } else null
 
         val evaluationsListener = db.collection("users").document(teacherUid).collection("readingEvaluations")
             .addSnapshotListener { snapshot, _ ->
                 if (snapshot != null) {
-                    readingEvaluations = snapshot.documents.mapNotNull { doc ->
+                    teacherEvaluations = snapshot.documents.mapNotNull { doc ->
                         doc.toObject(LibraryReadingEvaluation::class.java)?.copy(id = doc.id)
                     }
                     isLoading = false
                 }
             }
             
+        val localEvaluationsListener = if (currentUserUid != null && currentUserUid != teacherUid) {
+            db.collection("users").document(currentUserUid).collection("readingEvaluations")
+                .addSnapshotListener { snapshot, _ ->
+                    if (snapshot != null) {
+                        localEvaluations = snapshot.documents.mapNotNull { doc ->
+                            doc.toObject(LibraryReadingEvaluation::class.java)?.copy(id = doc.id)
+                        }
+                    }
+                    isLoading = false
+                }
+        } else null
+            
         onDispose {
             booksListener.remove()
+            localBooksListener?.remove()
             studentsListener.remove()
+            localStudentsListener?.remove()
             recordsListener.remove()
+            localRecordsListener?.remove()
             evaluationsListener.remove()
+            localEvaluationsListener?.remove()
         }
     }
     
     if (showAddDialog) {
         AddBookDialog(
-            userId = teacherUid,
+            userId = writeUid,
             books = books,
             students = students,
             readingRecords = readingRecords,
@@ -148,7 +211,7 @@ fun LibraryManagementTab(
             onAdd = { newBook, assignedStudent ->
                 scope.launch {
                     try {
-                        val bookRef = db.collection("users").document(teacherUid).collection("books").add(newBook).await()
+                        val bookRef = db.collection("users").document(writeUid).collection("books").add(newBook).await()
                         
                         if (assignedStudent != null) {
                             val updates = hashMapOf<String, Any>(
@@ -165,12 +228,12 @@ fun LibraryManagementTab(
                                 "studentId" to assignedStudent.id,
                                 "studentNo" to assignedStudent.studentNo,
                                 "studentName" to assignedStudent.name,
-                                "teacherUid" to teacherUid,
+                                "teacherUid" to writeUid,
                                 "assignedAt" to FieldValue.serverTimestamp(),
                                 "returnedAt" to null,
                                 "status" to "active"
                             )
-                            db.collection("users").document(teacherUid).collection("readingRecords").add(record).await()
+                            db.collection("users").document(writeUid).collection("readingRecords").add(record).await()
                         }
                         showAddDialog = false
                     } catch (e: Exception) {
@@ -203,11 +266,11 @@ fun LibraryManagementTab(
                                 books = books, 
                                 students = students, 
                                 readingRecords = readingRecords,
-                                teacherUid = teacherUid, 
+                                teacherUid = writeUid, 
                                 db = db,
                                 onEditClicked = { /* TODO implement edit */ },
                                 onDeleteClicked = { bookId ->
-                                    scope.launch { db.collection("users").document(teacherUid).collection("books").document(bookId).delete().await() }
+                                    scope.launch { db.collection("users").document(writeUid).collection("books").document(bookId).delete().await() }
                                 },
                                 onMarkAsReadByAll = { book ->
                                     scope.launch {
@@ -218,16 +281,16 @@ fun LibraryManagementTab(
                                             "status" to "Rafta",
                                             "assignmentDate" to FieldValue.delete()
                                         )
-                                        db.collection("users").document(teacherUid).collection("books").document(book.id).update(updates).await()
+                                        db.collection("users").document(writeUid).collection("books").document(book.id).update(updates).await()
                                         
                                         // End any active reading records for this book
-                                        val recordsQuery = db.collection("users").document(teacherUid).collection("readingRecords")
+                                        val recordsQuery = db.collection("users").document(writeUid).collection("readingRecords")
                                             .whereEqualTo("bookId", book.id)
                                             .get().await()
                                             
                                         for (doc in recordsQuery.documents) {
                                             if (!doc.contains("endDate") || doc.get("endDate") == null) {
-                                                db.collection("users").document(teacherUid).collection("readingRecords")
+                                                db.collection("users").document(writeUid).collection("readingRecords")
                                                     .document(doc.id).update("endDate", FieldValue.serverTimestamp()).await()
                                             }
                                         }
@@ -246,12 +309,12 @@ fun LibraryManagementTab(
                                                     "bookName" to book.name,
                                                     "studentId" to student.id,
                                                     "studentName" to "${student.name} ${student.surname}",
-                                                    "teacherUid" to teacherUid,
+                                                    "teacherUid" to writeUid,
                                                     "startDate" to FieldValue.serverTimestamp(),
                                                     "endDate" to FieldValue.serverTimestamp(), // Instantly finished since they all read it
                                                     "createdAt" to FieldValue.serverTimestamp()
                                                 )
-                                                db.collection("users").document(teacherUid).collection("readingRecords").add(record).await()
+                                                db.collection("users").document(writeUid).collection("readingRecords").add(record).await()
                                                 
                                                 // Star logic
                                                 if (starsToAward > 0) {
@@ -261,7 +324,7 @@ fun LibraryManagementTab(
                                                         "amount" to starsToAward,
                                                         "timestamp" to System.currentTimeMillis()
                                                     )
-                                                    db.collection("users").document(teacherUid).collection("students").document(student.id)
+                                                    db.collection("users").document(writeUid).collection("students").document(student.id)
                                                         .update(
                                                             "stars", FieldValue.increment(starsToAward.toLong()),
                                                             "starHistory", FieldValue.arrayUnion(newHistoryItem)
@@ -276,14 +339,14 @@ fun LibraryManagementTab(
                                 records = readingRecords, 
                                 students = students, 
                                 dateFormatter = dateFormatter,
-                                teacherUid = teacherUid,
+                                teacherUid = writeUid,
                                 db = db
                              )
                         2 -> ReadingEvaluationScreen(
                                 books = books,
                                 students = students,
                                 evaluations = readingEvaluations,
-                                teacherUid = teacherUid,
+                                teacherUid = writeUid,
                                 db = db
                              )
                     }

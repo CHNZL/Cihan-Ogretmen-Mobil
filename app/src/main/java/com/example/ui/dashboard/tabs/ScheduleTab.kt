@@ -59,9 +59,21 @@ fun ScheduleTab(
     }
 
     // State bindings
-    var scheduleConfig by remember { mutableStateOf<ScheduleConfig?>(null) }
-    var scheduleData by remember { mutableStateOf(ScheduleData()) }
-    var subjects by remember { mutableStateOf<List<Subject>>(emptyList()) }
+    val currentUserUid = remember { com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid }
+    
+    var teacherScheduleConfig by remember { mutableStateOf<ScheduleConfig?>(null) }
+    var localScheduleConfig by remember { mutableStateOf<ScheduleConfig?>(null) }
+    
+    var teacherScheduleData by remember { mutableStateOf(ScheduleData()) }
+    var localScheduleData by remember { mutableStateOf<ScheduleData?>(null) }
+    
+    var teacherSubjects by remember { mutableStateOf(emptyList<Subject>()) }
+    var localSubjects by remember { mutableStateOf(emptyList<Subject>()) }
+
+    val scheduleConfig = localScheduleConfig ?: teacherScheduleConfig
+    val scheduleData = localScheduleData ?: teacherScheduleData
+    val subjects = (teacherSubjects + localSubjects).distinctBy { it.name.trim().lowercase() }
+
     var isLoading by remember { mutableStateOf(true) }
 
     // Dialog state
@@ -126,7 +138,7 @@ fun ScheduleTab(
                         entry.key.toString() to (entry.value as? Long)?.toInt()!!
                     } ?: emptyMap()
 
-                    scheduleConfig = ScheduleConfig(
+                    teacherScheduleConfig = ScheduleConfig(
                         days = days,
                         lessonCount = lessonCount,
                         startTime = startTime,
@@ -140,9 +152,47 @@ fun ScheduleTab(
                     android.util.Log.e("ScheduleTab", "Error parsing schedule config", e)
                 }
             } else {
-                scheduleConfig = null
+                teacherScheduleConfig = null
             }
         }
+
+        val overrideConfigListener = if (currentUserUid != null && currentUserUid != teacherUid) {
+            val overrideRef = db.collection("users").document(currentUserUid).collection("config").document("schedule")
+            overrideRef.addSnapshotListener { snapshot, error ->
+                if (snapshot != null && snapshot.exists()) {
+                    try {
+                        val daysRaw = snapshot.get("gunler") as? List<*> ?: snapshot.get("days") as? List<*>
+                        val days = daysRaw?.map { it.toString() } ?: listOf("Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma")
+                        val lessonCount = (snapshot.get("dersSayisi") as? Long ?: snapshot.get("ders_sayisi") as? Long ?: snapshot.get("lessonCount") as? Long)?.toInt() ?: 6
+                        val startTime = snapshot.getString("baslangicSaati") ?: snapshot.getString("baslangic_saati") ?: snapshot.getString("startTime") ?: "08:30"
+                        val lessonDuration = (snapshot.get("dersSuresi") as? Long ?: snapshot.get("ders_suresi") as? Long ?: snapshot.get("lessonDuration") as? Long)?.toInt() ?: 40
+                        val recessDuration = (snapshot.get("teneffusSuresi") as? Long ?: snapshot.get("teneffus_suresi") as? Long ?: snapshot.get("recessDuration") as? Long)?.toInt() ?: 15
+                        val lunchBreakDuration = (snapshot.get("ogleArasiSuresi") as? Long ?: snapshot.get("ogle_arasi_suresi") as? Long ?: snapshot.get("lunchBreakDuration") as? Long)?.toInt() ?: 60
+                        val lunchBreakAfterLesson = (snapshot.get("ogleArasiKacinciDersten") as? Long ?: snapshot.get("ogle_arasi_kacinci_dersten") as? Long ?: snapshot.get("lunchBreakAfterLesson") as? Long)?.toInt() ?: 4
+
+                        val customRecessRaw = snapshot.get("ozelTeneffusSureleri") as? Map<*, *> ?: snapshot.get("ozel_teneffus_sureleri") as? Map<*, *> ?: snapshot.get("customRecessDurations") as? Map<*, *>
+                        val customRecessDurations = customRecessRaw?.entries?.associate { entry ->
+                            entry.key.toString() to (entry.value as? Long)?.toInt()!!
+                        } ?: emptyMap()
+
+                        localScheduleConfig = ScheduleConfig(
+                            days = days,
+                            lessonCount = lessonCount,
+                            startTime = startTime,
+                            lessonDuration = lessonDuration,
+                            recessDuration = recessDuration,
+                            lunchBreakDuration = lunchBreakDuration,
+                            lunchBreakAfterLesson = lunchBreakAfterLesson,
+                            customRecessDurations = customRecessDurations
+                        )
+                    } catch (e: Exception) {
+                        android.util.Log.e("ScheduleTab", "Error parsing local schedule config", e)
+                    }
+                } else {
+                    localScheduleConfig = null
+                }
+            }
+        } else null
 
         val dataRef = db.collection("users").document(teacherUid).collection("config").document("scheduleData")
         val dataListener = dataRef.addSnapshotListener { snapshot, error ->
@@ -157,11 +207,32 @@ fun ScheduleTab(
                     }
                     entry.key.toString() to lessonId
                 } ?: emptyMap()
-                scheduleData = ScheduleData(slots)
+                teacherScheduleData = ScheduleData(slots)
             } else {
-                scheduleData = ScheduleData()
+                teacherScheduleData = ScheduleData()
             }
         }
+
+        val overrideDataListener = if (currentUserUid != null && currentUserUid != teacherUid) {
+            val overrideRef = db.collection("users").document(currentUserUid).collection("config").document("scheduleData")
+            overrideRef.addSnapshotListener { snapshot, error ->
+                if (snapshot != null && snapshot.exists()) {
+                    val slotsRaw = snapshot.get("slots") as? Map<*, *>
+                    val slots = slotsRaw?.entries?.associate { entry ->
+                        val value = entry.value
+                        val lessonId = if (value is Map<*, *>) {
+                            (value["lessonId"] ?: value["subjectId"] ?: value["subject"] ?: value["id"] ?: value["name"])?.toString() ?: ""
+                        } else {
+                            value?.toString() ?: ""
+                        }
+                        entry.key.toString() to lessonId
+                    } ?: emptyMap()
+                    localScheduleData = ScheduleData(slots)
+                } else {
+                    localScheduleData = null
+                }
+            }
+        } else null
 
         val subjectsRef = db.collection("users").document(teacherUid).collection("subjects")
         val subjectsListener = subjectsRef.addSnapshotListener { snapshot, error ->
@@ -188,15 +259,32 @@ fun ScheduleTab(
                         val color = doc.getString("color") ?: "#3b82f6"
                         Subject(doc.id, name, color, teacherUid)
                     }
-                    subjects = subList
+                    teacherSubjects = subList
                 }
             }
         }
 
+        val overrideSubjectsListener = if (currentUserUid != null && currentUserUid != teacherUid) {
+            val overrideRef = db.collection("users").document(currentUserUid).collection("subjects")
+            overrideRef.addSnapshotListener { snapshot, error ->
+                if (snapshot != null) {
+                    val subList = snapshot.documents.mapNotNull { doc ->
+                        val name = doc.getString("name") ?: ""
+                        val color = doc.getString("color") ?: "#3b82f6"
+                        Subject(doc.id, name, color, currentUserUid)
+                    }
+                    localSubjects = subList
+                }
+            }
+        } else null
+
         onDispose {
             configListener.remove()
+            overrideConfigListener?.remove()
             dataListener.remove()
+            overrideDataListener?.remove()
             subjectsListener.remove()
+            overrideSubjectsListener?.remove()
         }
     }
 
@@ -597,12 +685,26 @@ fun ScheduleTab(
                                     "ozelTeneffusSureleri" to customRecessedParsed
                                 )
 
-                                db.collection("users").document(teacherUid)
+                                val cleanCustomRecess = customRecessedParsed.toMap()
+                                val writeUid = if (currentUserUid != null && currentUserUid != teacherUid) currentUserUid else teacherUid
+                                db.collection("users").document(writeUid)
                                     .collection("config").document("schedule")
                                     .set(payload)
                                     .addOnSuccessListener {
                                         Toast.makeText(context, "Ayarlar Kaydedildi", Toast.LENGTH_SHORT).show()
                                         isSettingsOpen = false
+                                        if (writeUid == currentUserUid) {
+                                            localScheduleConfig = ScheduleConfig(
+                                                days = formDays,
+                                                lessonCount = intLessonCount,
+                                                startTime = formStartTime,
+                                                lessonDuration = intLessonDuration,
+                                                recessDuration = intRecessDuration,
+                                                lunchBreakDuration = intLunchDuration,
+                                                lunchBreakAfterLesson = intLunchAfter,
+                                                customRecessDurations = cleanCustomRecess
+                                            )
+                                        }
                                     }
                                     .addOnFailureListener {
                                         Toast.makeText(context, "Hata: ${it.message}", Toast.LENGTH_SHORT).show()
@@ -669,7 +771,8 @@ fun ScheduleTab(
                                         val updatedSlots = scheduleData.slots.toMutableMap().apply {
                                             put(slotKey, sub.id)
                                         }
-                                        db.collection("users").document(teacherUid)
+                                        val writeUid = if (currentUserUid != null && currentUserUid != teacherUid) currentUserUid else teacherUid
+                                        db.collection("users").document(writeUid)
                                             .collection("config").document("scheduleData")
                                             .set(mapOf(
                                                 "slots" to updatedSlots,
@@ -677,6 +780,9 @@ fun ScheduleTab(
                                             ))
                                             .addOnSuccessListener {
                                                 isSubjectSelectOpen = false
+                                                if (writeUid == currentUserUid) {
+                                                    localScheduleData = ScheduleData(updatedSlots)
+                                                }
                                             }
                                     },
                                     onEditClick = {
@@ -696,7 +802,8 @@ fun ScheduleTab(
                                         val updatedSlots = scheduleData.slots.toMutableMap().apply {
                                             remove(slotKey)
                                         }
-                                        db.collection("users").document(teacherUid)
+                                        val writeUid = if (currentUserUid != null && currentUserUid != teacherUid) currentUserUid else teacherUid
+                                        db.collection("users").document(writeUid)
                                             .collection("config").document("scheduleData")
                                             .set(mapOf(
                                                 "slots" to updatedSlots,
@@ -704,6 +811,9 @@ fun ScheduleTab(
                                             ))
                                             .addOnSuccessListener {
                                                 isSubjectSelectOpen = false
+                                                if (writeUid == currentUserUid) {
+                                                    localScheduleData = ScheduleData(updatedSlots)
+                                                }
                                             }
                                     },
                                     modifier = Modifier.fillMaxWidth(),
@@ -824,7 +934,8 @@ fun ScheduleTab(
                             OutlinedButton(
                                 onClick = {
                                     editingSubject?.let { sub ->
-                                        db.collection("users").document(teacherUid)
+                                        val writeUid = if (currentUserUid != null && currentUserUid != teacherUid) currentUserUid else teacherUid
+                                        db.collection("users").document(writeUid)
                                             .collection("subjects").document(sub.id)
                                             .delete()
                                             .addOnSuccessListener {
@@ -856,15 +967,16 @@ fun ScheduleTab(
                                     Toast.makeText(context, "Ders adı boş olamaz", Toast.LENGTH_SHORT).show()
                                     return@Button
                                 }
+                                val writeUid = if (currentUserUid != null && currentUserUid != teacherUid) currentUserUid else teacherUid
                                 val model = mapOf(
                                     "name" to subjectNameInput.trim(),
                                     "color" to subjectColorInput,
-                                    "teacherUid" to teacherUid,
+                                    "teacherUid" to writeUid,
                                     "updatedAt" to FieldValue.serverTimestamp()
                                 )
 
-                                val targetDoc = editingSubject?.id ?: db.collection("users").document(teacherUid).collection("subjects").document().id
-                                db.collection("users").document(teacherUid)
+                                val targetDoc = editingSubject?.id ?: db.collection("users").document(writeUid).collection("subjects").document().id
+                                db.collection("users").document(writeUid)
                                     .collection("subjects").document(targetDoc)
                                     .set(model)
                                     .addOnSuccessListener {

@@ -22,6 +22,14 @@ class FirestoreRepository {
         "ai-studio-50d2114a-6844-4ea4-a54d-c3de2ef685ab"
     )
 
+    private fun getEffectiveUid(passedUid: String): String {
+        val currentUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
+        val actualUid = currentUser?.uid
+        // If the user is logged in anonymously (their actualUid is not null but different from passedUid),
+        // we use their actualUid to write, so we avoid PERMISSION_DENIED.
+        return if (actualUid != null && actualUid != passedUid) actualUid else passedUid
+    }
+
     suspend fun getUserDocument(userId: String): UserDocument? {
         return try {
             android.util.Log.d("FirestoreRepository", "getUserDocument for UID: $userId")
@@ -114,14 +122,22 @@ class FirestoreRepository {
     }
 
     suspend fun getStudents(teacherUid: String): List<Student> {
-        android.util.Log.d("FirestoreRepository", "getStudents called with teacherUid: $teacherUid")
+        val effectiveUid = getEffectiveUid(teacherUid)
+        android.util.Log.d("FirestoreRepository", "getStudents called with teacherUid: $teacherUid (effectiveUid: $effectiveUid)")
         return try {
-            val snapshot = db.collection("users").document(teacherUid).collection("students")
+            var snapshot = db.collection("users").document(effectiveUid).collection("students")
                 .get()
                 .awaitWithTimeout()
             
+            if ((snapshot == null || snapshot.isEmpty) && effectiveUid != teacherUid) {
+                android.util.Log.d("FirestoreRepository", "getStudents empty on effectiveUid $effectiveUid, falling back to teacherUid $teacherUid")
+                snapshot = db.collection("users").document(teacherUid).collection("students")
+                    .get()
+                    .awaitWithTimeout()
+            }
+            
             if (snapshot == null) {
-                android.util.Log.w("FirestoreRepository", "Snapshot is null or timed out for getStudents on UID: $teacherUid")
+                android.util.Log.w("FirestoreRepository", "Snapshot is null or timed out for getStudents on UID: $effectiveUid")
                 return emptyList()
             }
             
@@ -201,7 +217,8 @@ class FirestoreRepository {
 
     suspend fun addStudent(teacherUid: String, student: Student) {
         try {
-            val docRef = db.collection("users").document(teacherUid).collection("students").document()
+            val effectiveUid = getEffectiveUid(teacherUid)
+            val docRef = db.collection("users").document(effectiveUid).collection("students").document()
             val newStudent = student.copy(id = docRef.id)
             docRef.set(newStudent).awaitWithTimeout()
         } catch (e: Exception) {
@@ -211,7 +228,8 @@ class FirestoreRepository {
 
     suspend fun updateStudent(teacherUid: String, student: Student) {
         try {
-            db.collection("users").document(teacherUid).collection("students").document(student.id)
+            val effectiveUid = getEffectiveUid(teacherUid)
+            db.collection("users").document(effectiveUid).collection("students").document(student.id)
                 .set(student).awaitWithTimeout()
         } catch (e: Exception) {
             e.printStackTrace()
@@ -220,7 +238,8 @@ class FirestoreRepository {
 
     suspend fun deleteStudent(teacherUid: String, studentId: String) {
         try {
-            db.collection("users").document(teacherUid).collection("students").document(studentId)
+            val effectiveUid = getEffectiveUid(teacherUid)
+            db.collection("users").document(effectiveUid).collection("students").document(studentId)
                 .delete().awaitWithTimeout()
         } catch (e: Exception) {
             e.printStackTrace()
@@ -229,7 +248,8 @@ class FirestoreRepository {
 
     suspend fun deleteAllStudents(teacherUid: String) {
         try {
-            val snapshot = db.collection("users").document(teacherUid).collection("students")
+            val effectiveUid = getEffectiveUid(teacherUid)
+            val snapshot = db.collection("users").document(effectiveUid).collection("students")
                 .get().awaitWithTimeout()
             
             val batch = db.batch()
@@ -486,7 +506,8 @@ class FirestoreRepository {
     ) {
         if (teacherUid.isEmpty()) return
         try {
-            val docRef = db.collection("users").document(teacherUid).collection("config").document("groupings")
+            val effectiveUid = getEffectiveUid(teacherUid)
+            val docRef = db.collection("users").document(effectiveUid).collection("config").document("groupings")
             val groupsList = groups.mapIndexed { idx, groupPair ->
                 mapOf(
                     "id" to "group-${idx + 1}",
@@ -508,10 +529,18 @@ class FirestoreRepository {
 
     suspend fun getGroupings(teacherUid: String): Pair<Boolean, List<Pair<String, List<String>>>>? {
         if (teacherUid.isEmpty()) return null
-        return try {
-            val doc = db.collection("users").document(teacherUid).collection("config").document("groupings")
+        try {
+            val effectiveUid = getEffectiveUid(teacherUid)
+            var doc = db.collection("users").document(effectiveUid).collection("config").document("groupings")
                 .get()
                 .awaitWithTimeout()
+            
+            if ((doc == null || !doc.exists()) && effectiveUid != teacherUid) {
+                doc = db.collection("users").document(teacherUid).collection("config").document("groupings")
+                    .get()
+                    .awaitWithTimeout()
+            }
+
             if (doc != null && doc.exists()) {
                 val manualModeActive = doc.getBoolean("manualModeActive") ?: false
                 val groupsListRaw = doc.get("groups") as? List<*>
@@ -524,11 +553,11 @@ class FirestoreRepository {
                         Pair(name, cleanIds)
                     } else null
                 } ?: emptyList()
-                Pair(manualModeActive, groups)
-            } else null
+                return Pair(manualModeActive, groups)
+            } else return null
         } catch (e: Exception) {
             e.printStackTrace()
-            null
+            return null
         }
     }
 
