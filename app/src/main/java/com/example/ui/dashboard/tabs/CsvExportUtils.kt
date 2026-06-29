@@ -25,7 +25,11 @@ object CsvExportUtils {
     fun exportClassListTemplate(context: Context) {
         try {
             val fileName = "Sinif_Listesi_Sablonu.csv"
-            val file = File(context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS), fileName)
+            val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            if (!downloadsDir.exists()) {
+                downloadsDir.mkdirs()
+            }
+            val file = File(downloadsDir, fileName)
             
             FileOutputStream(file).use { fos ->
                 OutputStreamWriter(fos, "UTF-8").use { writer ->
@@ -36,7 +40,7 @@ object CsvExportUtils {
                 }
             }
             
-            Toast.makeText(context, "Şablon indirildi: ${file.absolutePath}", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, "Şablon İndirilenler klasörüne kaydedildi.", Toast.LENGTH_LONG).show()
         } catch (e: Exception) {
             e.printStackTrace()
             Toast.makeText(context, "Şablon oluşturulurken hata oluştu", Toast.LENGTH_SHORT).show()
@@ -47,7 +51,11 @@ object CsvExportUtils {
         try {
             val dateFormat = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault())
             val fileName = "Sinif_Listesi_${dateFormat.format(Date())}.csv"
-            val file = File(context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS), fileName)
+            val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            if (!downloadsDir.exists()) {
+                downloadsDir.mkdirs()
+            }
+            val file = File(downloadsDir, fileName)
             
             FileOutputStream(file).use { fos ->
                 OutputStreamWriter(fos, "UTF-8").use { writer ->
@@ -71,7 +79,7 @@ object CsvExportUtils {
                 }
             }
             
-            Toast.makeText(context, "Sınıf listesi indirildi: ${file.absolutePath}", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, "Sınıf listesi İndirilenler klasörüne kaydedildi.", Toast.LENGTH_LONG).show()
         } catch (e: Exception) {
             e.printStackTrace()
             Toast.makeText(context, "Liste indirilirken hata oluştu", Toast.LENGTH_SHORT).show()
