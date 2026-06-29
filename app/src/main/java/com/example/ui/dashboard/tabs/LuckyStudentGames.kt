@@ -1640,11 +1640,28 @@ fun TreasureHuntGameView(students: List<Student>, onWinnerSelected: (Student) ->
                         Spacer(modifier = Modifier.height(16.dp))
 
                         // Quick, punchy explanation using the student's name directly!
-                        val explanation = when(victoryType) {
-                            TreasureVictoryType.JACKPOT -> "Efsanevi Önsezi! 👑 İlk denemede ${selectedStudent.name} çıktı! Altınların hepsi ${selectedStudent.name}'in oldu, korsanlar eli boş kaçtı! 🏴‍☠️💨"
-                            TreasureVictoryType.PARTIAL -> "Harika! 🪙 Korsanlar biraz altın kaçırsa da büyük hazineye ${selectedStudent.name} ulaştı! 🎉"
-                            TreasureVictoryType.CANDIES -> "Korsanlar altınları kapmış... 🏴‍☠️ Ama üzülmek yok, ${selectedStudent.name} nefis lolipoplar ve tatlılar kazandı! 🍬🍭🧁🥰"
-                            else -> ""
+                        val explanation = remember(selectedStudent.id, victoryType) {
+                            when(victoryType) {
+                                TreasureVictoryType.JACKPOT -> listOf(
+                                    "Efsanevi Önsezi! 👑 İlk denemede ${selectedStudent.name} çıktı! Altınların hepsi ${selectedStudent.name}'in oldu, korsanlar eli boş kaçtı! 🏴‍☠️💨",
+                                    "Sıfır hata, tam isabet! 🗺️ Korsanları şaşkına çevirip büyük ödülü ilk denemede kapan usta denizci ${selectedStudent.name} oldu! ⚓",
+                                    "Korsanlar daha ne olduğunu anlamadan ${selectedStudent.name} hazineyi buldu bile! 🏴‍☠️ Harika bir sezgi ve muazzam şans! 🪙",
+                                    "Altıncı hissi kuvvetli kâşifimiz ${selectedStudent.name}, rotasını doğrudan efsanevi sandığa çevirdi! 🧭 Mükemmel bir keşif! ✨"
+                                ).random()
+                                TreasureVictoryType.PARTIAL -> listOf(
+                                    "Harika! 🪙 Korsanlar biraz altın kaçırsa da büyük hazineye ${selectedStudent.name} ulaştı! 🎉",
+                                    "Korsanlarla zorlu bir mücadeleden sonra asıl ganimeti kapan maceracımız ${selectedStudent.name} oldu! ⚔️ Altınlar senin! 💰",
+                                    "Birkaç korsan tuzağı onu durduramadı! ⚓ ${selectedStudent.name} azmi sayesinde parlayan sandığı açmayı başardı! 🗺️",
+                                    "Biraz sarsıntılı bir yolculuk oldu ama ${selectedStudent.name} pusulasını doğru kullanarak ana hazineyi ele geçirdi! 🧭✨"
+                                ).random()
+                                TreasureVictoryType.CANDIES -> listOf(
+                                    "Korsanlar altınları kapmış... 🏴‍☠️ Ama üzülmek yok, ${selectedStudent.name} nefis lolipoplar ve tatlılar kazandı! 🍬🍭🧁🥰",
+                                    "Korsanlar hazineyi almış olabilir ama ${selectedStudent.name} son sandıkta dünyanın en tatlı ödülünü buldu! 🍫🍭 Gerçek zafer bu! 🍬",
+                                    "Altınlar korsanların olsun, asıl ödül tatlılardı! 🧁 ${selectedStudent.name} lezzet dolu sandığı bularak günün kazananı oldu! 🍫🎉",
+                                    "Korsanlar paranın peşine düşerken, ${selectedStudent.name} akıllıca davranıp şekerleme dolu gizli zulayı keşfetti! 🍬🍭🧁"
+                                ).random()
+                                else -> ""
+                            }
                         }
 
                         Text(
@@ -2136,8 +2153,20 @@ fun HeroSignalGameView(students: List<Student>, teacherCity: String = "Sivas", o
 
                         Spacer(modifier = Modifier.height(16.dp))
 
+                        val randomMessages = listOf(
+                            "${teacherCity} uykudayken gökyüzünde parlayan muhteşem sinyalimiz ${selectedHero.name}'i çağırdı! ⚡ Gücü, adaleti ve peleriniyle bu gece sınıfımız ona emanet! 🦸‍♂️🦇🌟",
+                            "Sinyal göğe yükseldiğinde tüm şehir ${selectedHero.name}'in adını fısıldadı! 🦸 Adaletin yeni temsilcisi göreve hazır! ✨",
+                            "Karanlık bulutların arasından süzülen ışık ${selectedHero.name}'i seçti! ⚡ Bu zorlu görevde ${teacherCity} artık çok daha güvende! 🦇",
+                            "Kimse beklemiyordu ama sinyal tam da ${selectedHero.name}'i gösterdi! 🌟 Kahramanlık pelerinini dalgalandırma vakti geldi! 🦸‍♂️",
+                            "${teacherCity} semalarındaki bu devasa ışık huzmesi gerçek kahramanı buldu: ${selectedHero.name}! 🦇 Sınıfımızın yeni umudu o! ⚡",
+                            "Süper güçlere gerek yok, kocaman bir yürek yeter! 🌟 Sinyal ${selectedHero.name}'in cesaretini tüm şehre ilan etti! 🦸",
+                            "Gökyüzündeki parlak çağrı cevapsız kalmadı! ⚡ ${selectedHero.name} pelerinini taktı ve adaleti sağlamak için yola çıktı! 🦇"
+                        )
+                        
+                        val displayedMessage = remember(selectedHero.id) { randomMessages.random() }
+
                         Text(
-                            text = "${teacherCity} uykudayken gökyüzünde parlayan muhteşem sinyalimiz ${selectedHero.name}'i çağırdı! ⚡ Gücü, adaleti ve peleriniyle bu gece sınıfımız ona emanet! 🦸‍♂️🦇🌟",
+                            text = displayedMessage,
                             fontSize = 14.sp,
                             color = Color(0xFF334155),
                             textAlign = TextAlign.Center,

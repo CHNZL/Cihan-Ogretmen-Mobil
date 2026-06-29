@@ -1,9 +1,0 @@
-# Changed on 2026-05-18 to trigger GitHub sync (Design Update)
-node_modules/
-build/
-dist/
-coverage/
-.DS_Store
-*.log
-.env*
-!.env.example
