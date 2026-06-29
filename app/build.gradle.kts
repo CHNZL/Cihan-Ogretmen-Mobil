@@ -128,6 +128,8 @@ dependencies {
   debugImplementation(libs.androidx.compose.ui.tooling)
   "ksp"(libs.androidx.room.compiler)
   "ksp"(libs.moshi.kotlin.codegen)
+  
+  implementation("net.sourceforge.jexcelapi:jxl:2.6.12")
 }
 
 tasks.register("unzipProject") {

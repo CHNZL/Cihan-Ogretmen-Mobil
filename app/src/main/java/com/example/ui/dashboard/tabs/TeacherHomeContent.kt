@@ -167,13 +167,30 @@ fun TeacherHomeContent(
     var dersYonetimiActions by remember { mutableStateOf(listOf(dersYonetimiOptions[5], dersYonetimiOptions[6])) }
     var turnuvaYonetimiActions by remember { mutableStateOf(listOf(turnuvaYonetimiOptions[1], turnuvaYonetimiOptions[0])) }
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+    var isRefreshing by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isLoading) {
+        if (!isLoading) {
+            isRefreshing = false
+        }
+    }
+
+    @OptIn(ExperimentalMaterial3Api::class)
+    androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = {
+            isRefreshing = true
+            updateViewModel.checkForUpdates(silentCheckOnStartup = false, autoDownloadContext = context)
+        },
+        modifier = Modifier.fillMaxSize()
     ) {
-        // Welcome Card
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Welcome Card
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -433,6 +450,7 @@ fun TeacherHomeContent(
         item {
             Spacer(modifier = Modifier.height(32.dp))
         }
+    }
     }
 }
 

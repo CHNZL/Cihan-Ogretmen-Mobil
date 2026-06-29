@@ -216,7 +216,7 @@ fun StudentsTab(
             }
             OutlinedButton(
                 onClick = { 
-                    CsvExportUtils.exportClassList(context, students)
+                    ExcelExportUtils.exportClassList(context, students)
                 },
                 modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 12.dp)
@@ -453,7 +453,7 @@ fun StudentsTab(
             if (uri != null) {
                 coroutineScope.launch {
                     isLoading = true
-                    val importedStudents = CsvExportUtils.importClassListFromCsv(context, uri)
+                    val importedStudents = ExcelExportUtils.importClassListFromExcel(context, uri)
                     importedStudents.forEach { student ->
                         firestoreRepository.addStudent(userData.teacherUid, student.copy(teacherUid = userData.teacherUid))
                     }
@@ -468,10 +468,10 @@ fun StudentsTab(
             title = { Text("Listeyi Excel'den Yükle", fontWeight = FontWeight.Bold) },
             text = {
                 Column {
-                    Text("Öğrenci listenizi CSV formatında (.csv) toplu olarak yükleyin.", style = MaterialTheme.typography.bodyMedium)
+                    Text("Öğrenci listenizi Excel formatında (.xls) toplu olarak yükleyin.", style = MaterialTheme.typography.bodyMedium)
                     Spacer(Modifier.height(16.dp))
                     OutlinedButton(
-                        onClick = { CsvExportUtils.exportClassListTemplate(context) },
+                        onClick = { ExcelExportUtils.exportClassListTemplate(context) },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(20.dp))
