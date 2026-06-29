@@ -83,7 +83,7 @@ fun SharedTopAppBar(
         AlertDialog(
             onDismissRequest = { showClearAllConfirm = false },
             title = { Text("Tümünü Sil") },
-            text = { Text("Tüm bildirimleri silmek istediğinize emin misiniz?") },
+            text = { Text("Tüm notificationsi silmek istediğinize emin misiniz?") },
             confirmButton = {
                 Button(onClick = {
                     onNotificationsChanged(emptyList())

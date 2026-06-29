@@ -92,7 +92,7 @@ fun LibraryManagementTab(
     val dateFormatter = remember { SimpleDateFormat("dd.MM.yyyy", Locale("tr", "TR")) }
 
     DisposableEffect(teacherUid) {
-        val booksListener = db.collection("kullanicilar").document(teacherUid).collection("kitaplar")
+        val booksListener = db.collection("users").document(teacherUid).collection("books")
             .addSnapshotListener { snapshot, _ ->
                 if (snapshot != null) {
                     books = snapshot.documents.mapNotNull { doc ->
@@ -101,7 +101,7 @@ fun LibraryManagementTab(
                 }
             }
             
-        val studentsListener = db.collection("kullanicilar").document(teacherUid).collection("ogrenciler")
+        val studentsListener = db.collection("users").document(teacherUid).collection("students")
             .addSnapshotListener { snapshot, _ ->
                 if (snapshot != null) {
                     students = snapshot.documents.mapNotNull { doc ->
@@ -110,7 +110,7 @@ fun LibraryManagementTab(
                 }
             }
             
-        val recordsListener = db.collection("kullanicilar").document(teacherUid).collection("okumaKayitlari")
+        val recordsListener = db.collection("users").document(teacherUid).collection("readingRecords")
             .addSnapshotListener { snapshot, _ ->
                 if (snapshot != null) {
                     readingRecords = snapshot.documents.mapNotNull { doc ->
@@ -120,7 +120,7 @@ fun LibraryManagementTab(
                 }
             }
 
-        val evaluationsListener = db.collection("kullanicilar").document(teacherUid).collection("okumaDegerlendirmeleri")
+        val evaluationsListener = db.collection("users").document(teacherUid).collection("readingEvaluations")
             .addSnapshotListener { snapshot, _ ->
                 if (snapshot != null) {
                     readingEvaluations = snapshot.documents.mapNotNull { doc ->
@@ -148,7 +148,7 @@ fun LibraryManagementTab(
             onAdd = { newBook, assignedStudent ->
                 scope.launch {
                     try {
-                        val bookRef = db.collection("kullanicilar").document(teacherUid).collection("kitaplar").add(newBook).await()
+                        val bookRef = db.collection("users").document(teacherUid).collection("books").add(newBook).await()
                         
                         if (assignedStudent != null) {
                             val updates = hashMapOf<String, Any>(
@@ -170,7 +170,7 @@ fun LibraryManagementTab(
                                 "returnedAt" to null,
                                 "status" to "active"
                             )
-                            db.collection("kullanicilar").document(teacherUid).collection("okumaKayitlari").add(record).await()
+                            db.collection("users").document(teacherUid).collection("readingRecords").add(record).await()
                         }
                         showAddDialog = false
                     } catch (e: Exception) {
@@ -207,7 +207,7 @@ fun LibraryManagementTab(
                                 db = db,
                                 onEditClicked = { /* TODO implement edit */ },
                                 onDeleteClicked = { bookId ->
-                                    scope.launch { db.collection("kullanicilar").document(teacherUid).collection("kitaplar").document(bookId).delete().await() }
+                                    scope.launch { db.collection("users").document(teacherUid).collection("books").document(bookId).delete().await() }
                                 },
                                 onMarkAsReadByAll = { book ->
                                     scope.launch {
@@ -218,16 +218,16 @@ fun LibraryManagementTab(
                                             "status" to "Rafta",
                                             "assignmentDate" to FieldValue.delete()
                                         )
-                                        db.collection("kullanicilar").document(teacherUid).collection("kitaplar").document(book.id).update(updates).await()
+                                        db.collection("users").document(teacherUid).collection("books").document(book.id).update(updates).await()
                                         
                                         // End any active reading records for this book
-                                        val recordsQuery = db.collection("kullanicilar").document(teacherUid).collection("okumaKayitlari")
+                                        val recordsQuery = db.collection("users").document(teacherUid).collection("readingRecords")
                                             .whereEqualTo("bookId", book.id)
                                             .get().await()
                                             
                                         for (doc in recordsQuery.documents) {
                                             if (!doc.contains("endDate") || doc.get("endDate") == null) {
-                                                db.collection("kullanicilar").document(teacherUid).collection("okumaKayitlari")
+                                                db.collection("users").document(teacherUid).collection("readingRecords")
                                                     .document(doc.id).update("endDate", FieldValue.serverTimestamp()).await()
                                             }
                                         }
@@ -251,7 +251,7 @@ fun LibraryManagementTab(
                                                     "endDate" to FieldValue.serverTimestamp(), // Instantly finished since they all read it
                                                     "createdAt" to FieldValue.serverTimestamp()
                                                 )
-                                                db.collection("kullanicilar").document(teacherUid).collection("okumaKayitlari").add(record).await()
+                                                db.collection("users").document(teacherUid).collection("readingRecords").add(record).await()
                                                 
                                                 // Star logic
                                                 if (starsToAward > 0) {
@@ -261,7 +261,7 @@ fun LibraryManagementTab(
                                                         "amount" to starsToAward,
                                                         "timestamp" to System.currentTimeMillis()
                                                     )
-                                                    db.collection("kullanicilar").document(teacherUid).collection("ogrenciler").document(student.id)
+                                                    db.collection("users").document(teacherUid).collection("students").document(student.id)
                                                         .update(
                                                             "stars", FieldValue.increment(starsToAward.toLong()),
                                                             "starHistory", FieldValue.arrayUnion(newHistoryItem)
@@ -365,7 +365,7 @@ fun LibraryListScreen(
                         "status" to "Okunuyor",
                         "assignmentDate" to FieldValue.serverTimestamp()
                     )
-                    db.collection("kullanicilar").document(teacherUid).collection("kitaplar").document(showAssignDialog!!.id).update(updates).await()
+                    db.collection("users").document(teacherUid).collection("books").document(showAssignDialog!!.id).update(updates).await()
                     
                     val record = hashMapOf(
                         "bookId" to showAssignDialog!!.id,
@@ -376,7 +376,7 @@ fun LibraryListScreen(
                         "startDate" to FieldValue.serverTimestamp(),
                         "createdAt" to FieldValue.serverTimestamp()
                     )
-                    db.collection("kullanicilar").document(teacherUid).collection("okumaKayitlari").add(record).await()
+                    db.collection("users").document(teacherUid).collection("readingRecords").add(record).await()
                     showAssignDialog = null
                 }
             }
@@ -463,16 +463,16 @@ fun LibraryListScreen(
                                             "status" to "Rafta",
                                             "assignmentDate" to null
                                         )
-                                        db.collection("kullanicilar").document(teacherUid).collection("kitaplar").document(book.id).update(updates).await()
+                                        db.collection("users").document(teacherUid).collection("books").document(book.id).update(updates).await()
                                         
-                                        val recordsQuery = db.collection("kullanicilar").document(teacherUid).collection("okumaKayitlari")
+                                        val recordsQuery = db.collection("users").document(teacherUid).collection("readingRecords")
                                             .whereEqualTo("bookId", book.id)
                                             .whereEqualTo("studentId", studentId)
                                             .get().await()
                                             
                                         for (doc in recordsQuery.documents) {
                                             if (!doc.contains("endDate") || doc.get("endDate") == null) {
-                                                db.collection("kullanicilar").document(teacherUid).collection("okumaKayitlari")
+                                                db.collection("users").document(teacherUid).collection("readingRecords")
                                                     .document(doc.id).update("endDate", FieldValue.serverTimestamp()).await()
                                             }
                                         }
@@ -486,7 +486,7 @@ fun LibraryListScreen(
                                                 "amount" to starsToAward,
                                                 "timestamp" to System.currentTimeMillis()
                                             )
-                                            db.collection("kullanicilar").document(teacherUid).collection("ogrenciler").document(student.id)
+                                            db.collection("users").document(teacherUid).collection("students").document(student.id)
                                                 .update(
                                                     "stars", FieldValue.increment(starsToAward.toLong()),
                                                     "starHistory", FieldValue.arrayUnion(newHistoryItem)
@@ -597,7 +597,7 @@ fun ReadingRecordsScreen(
                             IconButton(
                                 onClick = {
                                     scope.launch {
-                                        db.collection("kullanicilar").document(teacherUid).collection("okumaKayitlari").document(record.id).delete().await()
+                                        db.collection("users").document(teacherUid).collection("readingRecords").document(record.id).delete().await()
                                     }
                                 },
                                 modifier = Modifier.size(24.dp)
@@ -655,7 +655,7 @@ fun ReadingEvaluationScreen(
         // Books List (Left sidebar on large screens, or just a compact list at top on mobile)
         Column(modifier = Modifier.weight(0.35f).fillMaxHeight().background(Color.White).padding(8.dp)) {
             Text(
-                text = "⚠️ Sadece tüm sınıf tarafından okunan kitaplar değerlendirilir.",
+                text = "⚠️ Sadece tüm sınıf tarafından okunan books değerlendirilir.",
                 fontSize = 11.sp,
                 color = Color(0xFFEAB308),
                 modifier = Modifier.padding(bottom = 8.dp)
@@ -742,10 +742,10 @@ fun ReadingEvaluationScreen(
                                                 "teacherUid" to teacherUid,
                                                 field to value
                                             )
-                                            db.collection("kullanicilar").document(teacherUid).collection("okumaDegerlendirmeleri").add(newEval).await()
+                                            db.collection("users").document(teacherUid).collection("readingEvaluations").add(newEval).await()
                                         } else {
                                             // Update existing
-                                            db.collection("kullanicilar").document(teacherUid).collection("okumaDegerlendirmeleri").document(evaluation.id).update(field, value).await()
+                                            db.collection("users").document(teacherUid).collection("readingEvaluations").document(evaluation.id).update(field, value).await()
                                         }
                                     }
                                 }

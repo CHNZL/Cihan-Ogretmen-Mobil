@@ -107,7 +107,7 @@ fun ScheduleTab(
 
     // Load Data using Snapshots
     DisposableEffect(teacherUid) {
-        val configRef = db.collection("kullanicilar").document(teacherUid).collection("ayarlar").document("schedule")
+        val configRef = db.collection("users").document(teacherUid).collection("config").document("schedule")
         val configListener = configRef.addSnapshotListener { snapshot, error ->
             isLoading = false
             if (snapshot != null && snapshot.exists()) {
@@ -144,7 +144,7 @@ fun ScheduleTab(
             }
         }
 
-        val dataRef = db.collection("kullanicilar").document(teacherUid).collection("ayarlar").document("scheduleData")
+        val dataRef = db.collection("users").document(teacherUid).collection("config").document("scheduleData")
         val dataListener = dataRef.addSnapshotListener { snapshot, error ->
             if (snapshot != null && snapshot.exists()) {
                 val slotsRaw = snapshot.get("slots") as? Map<*, *>
@@ -163,14 +163,14 @@ fun ScheduleTab(
             }
         }
 
-        val subjectsRef = db.collection("kullanicilar").document(teacherUid).collection("dersler")
+        val subjectsRef = db.collection("users").document(teacherUid).collection("subjects")
         val subjectsListener = subjectsRef.addSnapshotListener { snapshot, error ->
             if (snapshot != null) {
                 if (snapshot.isEmpty) {
                     // Populate default subjects in a non-blocking background thread
                     val batch = db.batch()
                     for (sub in defaultSubjects) {
-                        val newRef = db.collection("kullanicilar").document(teacherUid).collection("dersler").document()
+                        val newRef = db.collection("users").document(teacherUid).collection("subjects").document()
                         batch.set(newRef, mapOf(
                             "name" to sub.name,
                             "color" to sub.color,
@@ -268,8 +268,8 @@ fun ScheduleTab(
                             OutlinedButton(
                                 onClick = {
                                     // Reset local schedule custom slots
-                                    db.collection("kullanicilar").document(teacherUid)
-                                        .collection("ayarlar").document("scheduleData")
+                                    db.collection("users").document(teacherUid)
+                                        .collection("config").document("scheduleData")
                                         .set(mapOf(
                                             "slots" to emptyMap<String, String>(),
                                             "updatedAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
@@ -486,31 +486,64 @@ fun ScheduleTab(
                         val lunchAfterInt = formLunchAfter.toIntOrNull() ?: 0
                         
                         if (lessonCountInt > 1) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text("Özel Teneffüs Süreleri (Opsiyonel)", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            var isCustomRecessesExpanded by remember { mutableStateOf(false) }
                             
-                            Box(modifier = Modifier.fillMaxWidth()) {
-                                FlowRow(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    spacing = 8.dp
-                                ) {
-                                    for (i in 1 until lessonCountInt) {
-                                        if (i == lunchAfterInt) continue
-                                        val strKey = i.toString()
-                                        var textValState by remember(strKey) { mutableStateOf(customRecessForm[strKey] ?: "") }
-                                        
-                                        OutlinedTextField(
-                                            value = textValState,
-                                            onValueChange = {
-                                                textValState = it
-                                                if (it.isEmpty()) customRecessForm.remove(strKey) else customRecessForm[strKey] = it
-                                            },
-                                            label = { Text("$i. Teneffüs", fontSize = 10.sp) },
-                                            placeholder = { Text("${formRecessDuration} dk") },
-                                            modifier = Modifier.width(100.dp),
-                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                            shape = RoundedCornerShape(10.dp)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp)) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { isCustomRecessesExpanded = !isCustomRecessesExpanded },
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text(
+                                            text = "Özel Teneffüs Süreleri (Opsiyonel)",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 13.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
+                                        Icon(
+                                            imageVector = if (isCustomRecessesExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                            contentDescription = "Genişlet/Daralt",
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    
+                                    if (isCustomRecessesExpanded) {
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Box(modifier = Modifier.fillMaxWidth()) {
+                                            FlowRow(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                spacing = 8.dp
+                                            ) {
+                                                for (i in 1 until lessonCountInt) {
+                                                    if (i == lunchAfterInt) continue
+                                                    val strKey = i.toString()
+                                                    var textValState by remember(strKey) { mutableStateOf(customRecessForm[strKey] ?: "") }
+                                                    
+                                                    OutlinedTextField(
+                                                        value = textValState,
+                                                        onValueChange = {
+                                                            textValState = it
+                                                            if (it.isEmpty()) customRecessForm.remove(strKey) else customRecessForm[strKey] = it
+                                                        },
+                                                        label = { Text("$i. Teneffüs", fontSize = 10.sp) },
+                                                        placeholder = { Text("${formRecessDuration} dk") },
+                                                        modifier = Modifier.width(100.dp),
+                                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                                        shape = RoundedCornerShape(10.dp)
+                                                    )
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -564,8 +597,8 @@ fun ScheduleTab(
                                     "ozelTeneffusSureleri" to customRecessedParsed
                                 )
 
-                                db.collection("kullanicilar").document(teacherUid)
-                                    .collection("ayarlar").document("schedule")
+                                db.collection("users").document(teacherUid)
+                                    .collection("config").document("schedule")
                                     .set(payload)
                                     .addOnSuccessListener {
                                         Toast.makeText(context, "Ayarlar Kaydedildi", Toast.LENGTH_SHORT).show()
@@ -636,8 +669,8 @@ fun ScheduleTab(
                                         val updatedSlots = scheduleData.slots.toMutableMap().apply {
                                             put(slotKey, sub.id)
                                         }
-                                        db.collection("kullanicilar").document(teacherUid)
-                                            .collection("ayarlar").document("scheduleData")
+                                        db.collection("users").document(teacherUid)
+                                            .collection("config").document("scheduleData")
                                             .set(mapOf(
                                                 "slots" to updatedSlots,
                                                 "updatedAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
@@ -663,8 +696,8 @@ fun ScheduleTab(
                                         val updatedSlots = scheduleData.slots.toMutableMap().apply {
                                             remove(slotKey)
                                         }
-                                        db.collection("kullanicilar").document(teacherUid)
-                                            .collection("ayarlar").document("scheduleData")
+                                        db.collection("users").document(teacherUid)
+                                            .collection("config").document("scheduleData")
                                             .set(mapOf(
                                                 "slots" to updatedSlots,
                                                 "updatedAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
@@ -791,8 +824,8 @@ fun ScheduleTab(
                             OutlinedButton(
                                 onClick = {
                                     editingSubject?.let { sub ->
-                                        db.collection("kullanicilar").document(teacherUid)
-                                            .collection("dersler").document(sub.id)
+                                        db.collection("users").document(teacherUid)
+                                            .collection("subjects").document(sub.id)
                                             .delete()
                                             .addOnSuccessListener {
                                                 isSubjectEditOpen = false
@@ -830,9 +863,9 @@ fun ScheduleTab(
                                     "updatedAt" to FieldValue.serverTimestamp()
                                 )
 
-                                val targetDoc = editingSubject?.id ?: db.collection("kullanicilar").document(teacherUid).collection("dersler").document().id
-                                db.collection("kullanicilar").document(teacherUid)
-                                    .collection("dersler").document(targetDoc)
+                                val targetDoc = editingSubject?.id ?: db.collection("users").document(teacherUid).collection("subjects").document().id
+                                db.collection("users").document(teacherUid)
+                                    .collection("subjects").document(targetDoc)
                                     .set(model)
                                     .addOnSuccessListener {
                                         isSubjectEditOpen = false
