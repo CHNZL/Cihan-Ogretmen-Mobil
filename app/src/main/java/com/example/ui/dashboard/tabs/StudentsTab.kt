@@ -74,7 +74,8 @@ fun StudentsTab(
             "Erkek" -> student.gender.equals("Erkek", ignoreCase = true)
             "Kız" -> student.gender.equals("Kız", ignoreCase = true)
             "Doğum Günü" -> {
-                val studentMonth = student.birthDate.split(".").getOrNull(1) ?: student.birthDate.split("/").getOrNull(1)
+                val parts = student.birthDate.split(".", "/", "-")
+                val studentMonth = if (parts.size >= 2) parts[1] else null
                 studentMonth == currentMonth
             }
             else -> true
@@ -93,7 +94,8 @@ fun StudentsTab(
     val maleCount = students.count { it.gender.equals("Erkek", ignoreCase = true) }
     val femaleCount = students.count { it.gender.equals("Kız", ignoreCase = true) }
     val birthdayCount = students.count {
-        val studentMonth = it.birthDate.split(".").getOrNull(1) ?: it.birthDate.split("/").getOrNull(1)
+        val parts = it.birthDate.split(".", "/", "-")
+        val studentMonth = if (parts.size >= 2) parts[1] else null
         studentMonth == currentMonth
     }
 

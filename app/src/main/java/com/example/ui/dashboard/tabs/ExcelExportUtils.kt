@@ -109,7 +109,33 @@ object ExcelExportUtils {
                     val name = if (cells.size > 1) cells[1].contents.trim() else ""
                     val surname = if (cells.size > 2) cells[2].contents.trim() else ""
                     val gender = if (cells.size > 3) cells[3].contents.trim() else ""
-                    val birthDate = if (cells.size > 4) cells[4].contents.trim() else ""
+                    
+                    var birthDate = ""
+                    if (cells.size > 4) {
+                        val cell = cells[4]
+                        if (cell.type == jxl.CellType.DATE) {
+                            val dateCell = cell as jxl.DateCell
+                            birthDate = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(dateCell.date)
+                        } else {
+                            // If it's a string, try to reformat if it matches yyyy-MM-dd
+                            val content = cell.contents.trim()
+                            if (content.matches(Regex("\\d{4}-\\d{2}-\\d{2}"))) {
+                                try {
+                                    val date = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(content)
+                                    if (date != null) {
+                                        birthDate = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(date)
+                                    } else {
+                                        birthDate = content
+                                    }
+                                } catch (e: Exception) {
+                                    birthDate = content
+                                }
+                            } else {
+                                birthDate = content
+                            }
+                        }
+                    }
+                    
                     val parentEmail = if (cells.size > 5) cells[5].contents.trim() else ""
                     val parentEmail2 = if (cells.size > 6) cells[6].contents.trim() else ""
 
