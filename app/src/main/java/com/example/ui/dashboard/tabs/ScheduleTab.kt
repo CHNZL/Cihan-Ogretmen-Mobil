@@ -151,7 +151,7 @@ fun ScheduleTab(
                 val slots = slotsRaw?.entries?.associate { entry ->
                     val value = entry.value
                     val lessonId = if (value is Map<*, *>) {
-                        value["lessonId"]?.toString() ?: ""
+                        (value["lessonId"] ?: value["subjectId"] ?: value["subject"] ?: value["id"] ?: value["name"])?.toString() ?: ""
                     } else {
                         value?.toString() ?: ""
                     }

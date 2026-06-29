@@ -44,12 +44,7 @@ class AuthViewModel : ViewModel() {
                 android.util.Log.d("AuthViewModel", "onSignInResult for email: $email, userId: ${result.data.userId}")
 
                 if (isEmailAdmin) {
-                    val existingDoc = firestoreRepository.getUserDocumentByEmail(email)
-                    val adminUid = existingDoc?.first ?: if (result.data.userId.isNotEmpty() && !result.data.userId.contains("cihan_ozel_web_uid")) {
-                        result.data.userId
-                    } else {
-                        "cihan_ozel_web_uid"
-                    }
+                    val adminUid = "cihan_ozel_web_uid"
                     
                     resolvedUser = result.data.copy(
                         role = UserRole.ADMIN,
@@ -154,6 +149,8 @@ class AuthViewModel : ViewModel() {
 
     fun signInWithEmailDirectly(email: String) {
         val cleanEmail = email.trim().lowercase()
+        val isEmailAdmin = cleanEmail == "cihan.ozel10@gmail.com" || 
+                           cleanEmail == "cihanogretmen10@gmail.com"
         if (cleanEmail.isEmpty() || !cleanEmail.contains("@")) {
             _state.update { it.copy(signInError = "Lütfen geçerli bir e-posta adresi girin.") }
             return
@@ -171,8 +168,12 @@ class AuthViewModel : ViewModel() {
                 }
 
                 // Find existing UID from Firestore, or use email as deterministic fallback
-                val existingDoc = firestoreRepository.getUserDocumentByEmail(cleanEmail)
-                val targetUid = existingDoc?.first ?: "cihan_ozel_web_uid"
+                val targetUid = if (isEmailAdmin) {
+                    "cihan_ozel_web_uid"
+                } else {
+                    val existingDoc = firestoreRepository.getUserDocumentByEmail(cleanEmail)
+                    existingDoc?.first ?: "cihan_ozel_web_uid"
+                }
                 
                 // Capitalize first letter of email prefix as name
                 val prefix = cleanEmail.substringBefore("@")
