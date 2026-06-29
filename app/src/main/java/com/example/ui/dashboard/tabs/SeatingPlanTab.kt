@@ -130,8 +130,8 @@ fun SeatingPlanTab(userData: UserData) {
                     }
 
                     var parsedConfig: SeatingConfig? = null
-                    if (root.has("ayarlar")) {
-                        val configObj = root.getJSONObject("ayarlar")
+                    if (root.has("config")) {
+                        val configObj = root.getJSONObject("config")
                         val groupCount = configObj.optInt("groupCount", 3)
                         val peoplePerRow = configObj.optInt("peoplePerRow", 2)
                         val rowsArr = configObj.optJSONArray("rowsPerGroup")
@@ -174,13 +174,13 @@ fun SeatingPlanTab(userData: UserData) {
             students = repo.getStudents(teacherUid)
 
             // Fetch seating config
-            val configSnapshot = db.collection("kullanicilar").document(teacherUid).collection("ayarlar").document("seating").get().await()
+            val configSnapshot = db.collection("users").document(teacherUid).collection("config").document("seating").get().await()
             if (configSnapshot.exists()) {
                 seatingConfig = configSnapshot.toObject(SeatingConfig::class.java) ?: SeatingConfig()
             }
 
             // Fetch seating plan
-            val planSnapshot = db.collection("kullanicilar").document(teacherUid).collection("ayarlar").document("seatingPlan").get().await()
+            val planSnapshot = db.collection("users").document(teacherUid).collection("config").document("seatingPlan").get().await()
             if (planSnapshot.exists()) {
                 val planData = planSnapshot.toObject(SeatingPlanData::class.java)
                 if (planData != null) {
@@ -254,10 +254,10 @@ fun SeatingPlanTab(userData: UserData) {
                     Button(
                         onClick = {
                             isLoading = true
-                            db.collection("kullanicilar").document(teacherUid).collection("ayarlar").document("seating")
+                            db.collection("users").document(teacherUid).collection("config").document("seating")
                                 .set(seatingConfig)
                                 .addOnSuccessListener {
-                                    db.collection("kullanicilar").document(teacherUid).collection("ayarlar").document("seatingPlan")
+                                    db.collection("users").document(teacherUid).collection("config").document("seatingPlan")
                                         .set(SeatingPlanData(plan = seatingPlan))
                                         .addOnSuccessListener {
                                             isUnsavedPlan = false
@@ -372,7 +372,7 @@ fun SeatingPlanTab(userData: UserData) {
                             val rowsArr = JSONArray()
                             seatingConfig.rowsPerGroup.forEach { rowsArr.put(it) }
                             configObj.put("rowsPerGroup", rowsArr)
-                            root.put("ayarlar", configObj)
+                            root.put("config", configObj)
                             
                             val planObj = JSONObject()
                             seatingPlan.forEach { (seatId, studentId) ->
@@ -819,8 +819,8 @@ fun RandomPlacementDialog(
                     }
 
                     var parsedConfig: SeatingConfig? = null
-                    if (root.has("ayarlar")) {
-                        val configObj = root.getJSONObject("ayarlar")
+                    if (root.has("config")) {
+                        val configObj = root.getJSONObject("config")
                         val groupCount = configObj.optInt("groupCount", 3)
                         val peoplePerRow = configObj.optInt("peoplePerRow", 2)
                         val rowsArr = configObj.optJSONArray("rowsPerGroup")
@@ -2217,8 +2217,8 @@ fun ManualPlacementConfigDialog(
                     }
 
                     var parsedConfig: SeatingConfig? = null
-                    if (root.has("ayarlar")) {
-                        val configObj = root.getJSONObject("ayarlar")
+                    if (root.has("config")) {
+                        val configObj = root.getJSONObject("config")
                         val groupCount = configObj.optInt("groupCount", 3)
                         val peoplePerRow = configObj.optInt("peoplePerRow", 2)
                         val rowsArr = configObj.optJSONArray("rowsPerGroup")
@@ -2979,8 +2979,8 @@ fun HorizontalShiftDialog(
                     }
 
                     var parsedConfig: SeatingConfig? = null
-                    if (root.has("ayarlar")) {
-                        val configObj = root.getJSONObject("ayarlar")
+                    if (root.has("config")) {
+                        val configObj = root.getJSONObject("config")
                         val groupCount = configObj.optInt("groupCount", 3)
                         val peoplePerRow = configObj.optInt("peoplePerRow", 2)
                         val rowsArr = configObj.optJSONArray("rowsPerGroup")
@@ -3400,8 +3400,8 @@ fun VerticalShiftDialog(
                     }
 
                     var parsedConfig: SeatingConfig? = null
-                    if (root.has("ayarlar")) {
-                        val configObj = root.getJSONObject("ayarlar")
+                    if (root.has("config")) {
+                        val configObj = root.getJSONObject("config")
                         val groupCount = configObj.optInt("groupCount", 3)
                         val peoplePerRow = configObj.optInt("peoplePerRow", 2)
                         val rowsArr = configObj.optJSONArray("rowsPerGroup")

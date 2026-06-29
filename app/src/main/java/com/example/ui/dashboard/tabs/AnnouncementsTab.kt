@@ -67,14 +67,14 @@ fun AnnouncementsTab(userData: UserData) {
         
         // Fetch Students
         try {
-            val snapshot = db.collection("kullanicilar").document(userData.teacherUid).collection("ogrenciler").get().await()
+            val snapshot = db.collection("users").document(userData.teacherUid).collection("students").get().await()
             students = snapshot.documents.mapNotNull { it.toObject(Student::class.java)?.copy(id = it.id) }
         } catch (e: Exception) {
             e.printStackTrace()
         }
 
         // Fetch Announcements Listener
-        db.collection("kullanicilar").document(userData.teacherUid).collection("duyurular")
+        db.collection("users").document(userData.teacherUid).collection("announcements")
             .orderBy("createdAt", Query.Direction.DESCENDING)
             .addSnapshotListener { value, error ->
                 if (error != null) {
@@ -170,7 +170,7 @@ fun AnnouncementsTab(userData: UserData) {
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
                     Text("Duyurular", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.onBackground)
-                    Text("Sınıfınıza veya velilere özel duyurular", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Sınıfınıza veya velilere özel announcements", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
 
@@ -207,7 +207,7 @@ fun AnnouncementsTab(userData: UserData) {
                     AnnouncementCard(announcement = ann, students = students) {
                         scope.launch {
                             try {
-                                db.collection("kullanicilar").document(userData.teacherUid).collection("duyurular").document(ann.id).delete().await()
+                                db.collection("users").document(userData.teacherUid).collection("announcements").document(ann.id).delete().await()
                             } catch (e: Exception) {
                                 e.printStackTrace()
                             }
@@ -235,7 +235,7 @@ fun AnnouncementsTab(userData: UserData) {
                             "readBy" to emptyMap<String, Any>(),
                             "createdAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
                         )
-                        db.collection("kullanicilar").document(userData.teacherUid).collection("duyurular").add(payload).await()
+                        db.collection("users").document(userData.teacherUid).collection("announcements").add(payload).await()
                         showAddDialog = false
                     } catch (e: Exception) {
                         e.printStackTrace()
