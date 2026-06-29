@@ -37,26 +37,28 @@ class ExampleRobolectricTest {
     val db = FirebaseFirestore.getInstance(app, "ai-studio-50d2114a-6844-4ea4-a54d-c3de2ef685ab")
     
     println("--- FIRESTORE USERS DEBUG ---")
-    val query = db.collection("users").get().await()
+    val query = db.collection("kullanicilar").whereEqualTo("email", "cihan.ozel10@gmail.com").get().await()
     for (doc in query.documents) {
         val email = doc.getString("email")
-        val profileType = doc.getString("profileType")
-        println("User Document: ID=${doc.id}, Email=$email, Profile=$profileType")
+        println("User Document: ID=${doc.id}, Email=$email")
         
-        if (email?.contains("cihan", ignoreCase = true) == true) {
-            println("Found matching user: docId=${doc.id}")
-            // Check subcollections/documents
-            val scheduleRef = db.collection("users").document(doc.id).collection("config").document("schedule").get().await()
-            println("  Schedule Config exists: ${scheduleRef.exists()} data: ${scheduleRef.data}")
-            
-            val scheduleDataRef = db.collection("users").document(doc.id).collection("config").document("scheduleData").get().await()
-            println("  Schedule Data exists: ${scheduleDataRef.exists()} data: ${scheduleDataRef.data}")
-            
-            val subjectsRef = db.collection("users").document(doc.id).collection("subjects").get().await()
-            println("  Subjects count: ${subjectsRef.size()}")
-            for (sub in subjectsRef.documents) {
-                println("    Subject: id=${sub.id} name=${sub.getString("name")} color=${sub.getString("color")}")
-            }
+        val ayarlarRef = db.collection("kullanicilar").document(doc.id).collection("ayarlar").get().await()
+        println("  Ayarlar count: ${ayarlarRef.size()}")
+        for (ayar in ayarlarRef.documents) {
+            println("    Ayar: id=${ayar.id} data=${ayar.data}")
+        }
+    }
+    
+    // Also try checking old users and config if empty
+    val queryOld = db.collection("users").whereEqualTo("email", "cihan.ozel10@gmail.com").get().await()
+    for (doc in queryOld.documents) {
+        val email = doc.getString("email")
+        println("OLD User Document: ID=${doc.id}, Email=$email")
+        
+        val ayarlarRef = db.collection("users").document(doc.id).collection("config").get().await()
+        println("  Config count: ${ayarlarRef.size()}")
+        for (ayar in ayarlarRef.documents) {
+            println("    Config: id=${ayar.id} data=${ayar.data}")
         }
     }
     println("--- END DEBUG ---")

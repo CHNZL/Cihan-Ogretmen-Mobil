@@ -112,16 +112,16 @@ fun ScheduleTab(
             isLoading = false
             if (snapshot != null && snapshot.exists()) {
                 try {
-                    val daysRaw = snapshot.get("days") as? List<*>
+                    val daysRaw = snapshot.get("gunler") as? List<*> ?: snapshot.get("days") as? List<*>
                     val days = daysRaw?.map { it.toString() } ?: listOf("Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma")
-                    val lessonCount = (snapshot.get("lessonCount") as? Long)?.toInt() ?: 6
-                    val startTime = snapshot.getString("startTime") ?: "08:30"
-                    val lessonDuration = (snapshot.get("lessonDuration") as? Long)?.toInt() ?: 40
-                    val recessDuration = (snapshot.get("recessDuration") as? Long)?.toInt() ?: 15
-                    val lunchBreakDuration = (snapshot.get("lunchBreakDuration") as? Long)?.toInt() ?: 60
-                    val lunchBreakAfterLesson = (snapshot.get("lunchBreakAfterLesson") as? Long)?.toInt() ?: 4
+                    val lessonCount = (snapshot.get("dersSayisi") as? Long ?: snapshot.get("ders_sayisi") as? Long ?: snapshot.get("lessonCount") as? Long)?.toInt() ?: 6
+                    val startTime = snapshot.getString("baslangicSaati") ?: snapshot.getString("baslangic_saati") ?: snapshot.getString("startTime") ?: "08:30"
+                    val lessonDuration = (snapshot.get("dersSuresi") as? Long ?: snapshot.get("ders_suresi") as? Long ?: snapshot.get("lessonDuration") as? Long)?.toInt() ?: 40
+                    val recessDuration = (snapshot.get("teneffusSuresi") as? Long ?: snapshot.get("teneffus_suresi") as? Long ?: snapshot.get("recessDuration") as? Long)?.toInt() ?: 15
+                    val lunchBreakDuration = (snapshot.get("ogleArasiSuresi") as? Long ?: snapshot.get("ogle_arasi_suresi") as? Long ?: snapshot.get("lunchBreakDuration") as? Long)?.toInt() ?: 60
+                    val lunchBreakAfterLesson = (snapshot.get("ogleArasiKacinciDersten") as? Long ?: snapshot.get("ogle_arasi_kacinci_dersten") as? Long ?: snapshot.get("lunchBreakAfterLesson") as? Long)?.toInt() ?: 4
 
-                    val customRecessRaw = snapshot.get("customRecessDurations") as? Map<*, *>
+                    val customRecessRaw = snapshot.get("ozelTeneffusSureleri") as? Map<*, *> ?: snapshot.get("ozel_teneffus_sureleri") as? Map<*, *> ?: snapshot.get("customRecessDurations") as? Map<*, *>
                     val customRecessDurations = customRecessRaw?.entries?.associate { entry ->
                         entry.key.toString() to (entry.value as? Long)?.toInt()!!
                     } ?: emptyMap()
@@ -360,8 +360,9 @@ fun ScheduleTab(
         ) {
             Surface(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
+                    .fillMaxWidth(0.95f)
+                    .fillMaxHeight(0.9f)
+                    .padding(vertical = 16.dp),
                 shape = RoundedCornerShape(24.dp),
                 color = MaterialTheme.colorScheme.surface
             ) {
@@ -543,6 +544,7 @@ fun ScheduleTab(
                                 }
 
                                 val payload = mapOf(
+                                    // English fields (legacy)
                                     "days" to formDays,
                                     "lessonCount" to intLessonCount,
                                     "startTime" to formStartTime,
@@ -550,7 +552,16 @@ fun ScheduleTab(
                                     "recessDuration" to intRecessDuration,
                                     "lunchBreakDuration" to intLunchDuration,
                                     "lunchBreakAfterLesson" to intLunchAfter,
-                                    "customRecessDurations" to customRecessedParsed
+                                    "customRecessDurations" to customRecessedParsed,
+                                    // Turkish fields (camelCase for web sync)
+                                    "gunler" to formDays,
+                                    "dersSayisi" to intLessonCount,
+                                    "baslangicSaati" to formStartTime,
+                                    "dersSuresi" to intLessonDuration,
+                                    "teneffusSuresi" to intRecessDuration,
+                                    "ogleArasiSuresi" to intLunchDuration,
+                                    "ogleArasiKacinciDersten" to intLunchAfter,
+                                    "ozelTeneffusSureleri" to customRecessedParsed
                                 )
 
                                 db.collection("kullanicilar").document(teacherUid)
@@ -1056,7 +1067,7 @@ fun FlowRow(
         var currentInverseRow = mutableListOf<androidx.compose.ui.layout.Placeable>()
 
         measurables.forEach { measurable ->
-            val placeable = measurable.measure(constraints)
+            val placeable = measurable.measure(constraints.copy(minWidth = 0))
             val placeableWidth = placeable.width + spacing.roundToPx()
             if (rowWidth + placeableWidth > constraints.maxWidth && currentInverseRow.isNotEmpty()) {
                 rows.add(currentInverseRow)

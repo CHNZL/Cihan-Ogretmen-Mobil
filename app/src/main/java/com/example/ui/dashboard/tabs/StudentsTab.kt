@@ -449,7 +449,7 @@ fun StudentsTab(
     }
 
     if (showUploadDialog) {
-        val csvPickerLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        val excelPickerLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
             androidx.activity.result.contract.ActivityResultContracts.GetContent()
         ) { uri ->
             if (uri != null) {
@@ -482,7 +482,7 @@ fun StudentsTab(
                     }
                     Spacer(Modifier.height(16.dp))
                     Button(
-                        onClick = { csvPickerLauncher.launch("*/*") },
+                        onClick = { excelPickerLauncher.launch("*/*") },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.onSurfaceVariant)
                     ) {
@@ -624,7 +624,13 @@ fun StudentDetailsDialog(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 Text("Doğum Tarihi", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-                Text(student.birthDate.ifEmpty { "-" }, style = MaterialTheme.typography.bodyLarge)
+                val displayDate = try {
+                    if (student.birthDate.matches(Regex("\\d{4}-\\d{2}-\\d{2}"))) {
+                        val parsed = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(student.birthDate)
+                        if (parsed != null) SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(parsed) else student.birthDate
+                    } else student.birthDate
+                } catch (e: Exception) { student.birthDate }
+                Text(displayDate.ifEmpty { "-" }, style = MaterialTheme.typography.bodyLarge)
 
                 Spacer(modifier = Modifier.height(12.dp))
 
@@ -720,7 +726,18 @@ fun StudentDialog(
     var gender by remember { mutableStateOf(student?.gender ?: "Erkek") }
     var name by remember { mutableStateOf(student?.name ?: "") }
     var surname by remember { mutableStateOf(student?.surname ?: "") }
-    var birthDate by remember { mutableStateOf(student?.birthDate ?: "") }
+    var birthDate by remember { 
+        mutableStateOf(
+            student?.birthDate?.let { dateStr ->
+                try {
+                    if (dateStr.matches(Regex("\\d{4}-\\d{2}-\\d{2}"))) {
+                        val parsed = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(dateStr)
+                        if (parsed != null) SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(parsed) else dateStr
+                    } else dateStr
+                } catch (e: Exception) { dateStr }
+            } ?: ""
+        ) 
+    }
     var parentEmail by remember { mutableStateOf(student?.parentEmail ?: "") }
     var parentEmail2 by remember { mutableStateOf(student?.parentEmail2 ?: "") }
 
@@ -815,7 +832,7 @@ fun StudentDialog(
                         value = birthDate,
                         onValueChange = { birthDate = it },
                         label = { Text("Doğum Tarihi") },
-                        placeholder = { Text("gg ----- yyyy") },
+                        placeholder = { Text("gg.aa.yyyy") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         trailingIcon = { Icon(Icons.Default.CalendarToday, contentDescription = null) }

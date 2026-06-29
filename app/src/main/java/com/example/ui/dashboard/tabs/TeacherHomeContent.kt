@@ -86,7 +86,7 @@ fun TeacherHomeContent(
         val configRef = db.collection("kullanicilar").document(teacherUid).collection("ayarlar").document("schedule")
         val configListener = configRef.addSnapshotListener { snapshot, error ->
             if (snapshot != null && snapshot.exists()) {
-                lessonCount = (snapshot.get("lessonCount") as? Long)?.toInt() ?: 6
+                lessonCount = (snapshot.get("dersSayisi") as? Long ?: snapshot.get("ders_sayisi") as? Long ?: snapshot.get("lessonCount") as? Long)?.toInt() ?: 6
             }
         }
 
@@ -180,7 +180,7 @@ fun TeacherHomeContent(
         isRefreshing = isRefreshing,
         onRefresh = {
             isRefreshing = true
-            updateViewModel.checkForUpdates(silentCheckOnStartup = false, autoDownloadContext = context)
+            updateViewModel.checkForUpdates(silentCheckOnStartup = true, autoDownloadContext = context)
         },
         modifier = Modifier.fillMaxSize()
     ) {
