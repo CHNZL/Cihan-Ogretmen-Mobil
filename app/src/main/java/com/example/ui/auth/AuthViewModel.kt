@@ -24,6 +24,7 @@ class AuthViewModel : ViewModel() {
             
             viewModelScope.launch {
                 val email = result.data.email ?: ""
+                val userId = result.data.userId
                 var resolvedUser = result.data
                 
                 // Help check teacher role case-and-locale-insensitively
@@ -41,85 +42,76 @@ class AuthViewModel : ViewModel() {
                            p.contains("ogret", ignoreCase = true)
                 }
 
-                android.util.Log.d("AuthViewModel", "onSignInResult for email: $email, userId: ${result.data.userId}")
+                android.util.Log.d("AuthViewModel", "onSignInResult for email: $email, userId: $userId")
 
                 if (isEmailAdmin) {
                     val adminUid = "cihan_ozel_web_uid"
-                    
                     resolvedUser = result.data.copy(
                         role = UserRole.ADMIN,
                         userId = adminUid,
                         teacherUid = adminUid
                     )
-                    
                     android.util.Log.d("AuthViewModel", "Instant login for Cihan Hoca ADMIN session! teacherUid: $adminUid")
                     _state.update { it.copy(
                         isLoading = false,
                         isSignInSuccessful = true,
                         userData = resolvedUser
                     ) }
-                    
                     return@launch
                 }
 
-                // Query Firestore by email first to get the correct teacherUid (document ID)
-                val userDocByEmail = if (email.isNotEmpty()) {
-                    firestoreRepository.getUserDocumentByEmail(email)
-                } else null
+                // Step 1: Ensure a default user profile document exists in Firestore
+                firestoreRepository.createDefaultUserProfile(
+                    userId = userId,
+                    email = email,
+                    username = result.data.username,
+                    profilePictureUrl = result.data.profilePictureUrl
+                )
+
+                // Step 2: Auto-upgrade scan (checks if user is a parent linked to a student)
+                val upgradedDoc = firestoreRepository.autoUpgradeParentIfNeeded(userId, email)
                 
-                if (userDocByEmail != null) {
-                    val (webUid, userDoc) = userDocByEmail
+                // Step 3: Fetch the final document state
+                val userDoc = upgradedDoc ?: firestoreRepository.getUserDocument(userId)
+
+                // Step 4: Resolve Role and Routing
+                if (userDoc != null) {
                     val isTeacher = checkIsTeacher(userDoc.profileType)
-                    
-                    android.util.Log.d("AuthViewModel", "Resolved via email query: $webUid. ProfileType: ${userDoc.profileType}. IsTeacher: $isTeacher")
-                    
                     if (isTeacher) {
-                        resolvedUser = result.data.copy(
-                            role = UserRole.TEACHER,
-                            teacherUid = webUid
-                        )
-                    } else {
-                        // Check if parent
-                        val linkedStudents = firestoreRepository.getLinkedStudentsForParent(email)
-                        if (linkedStudents.isNotEmpty()) {
-                            android.util.Log.d("AuthViewModel", "User is a parent linked to teacher: ${linkedStudents.first().first}")
+                        if (userDoc.isProfileComplete && userDoc.schoolName.isNotEmpty()) {
                             resolvedUser = result.data.copy(
-                                role = UserRole.PARENT,
-                                teacherUid = linkedStudents.first().first
+                                role = UserRole.TEACHER,
+                                teacherUid = userId
                             )
                         } else {
-                            android.util.Log.d("AuthViewModel", "User is default MEMBER (no linked students)")
-                            resolvedUser = result.data.copy(role = UserRole.MEMBER)
+                            resolvedUser = result.data.copy(
+                                role = UserRole.MEMBER,
+                                teacherUid = userId
+                            )
                         }
+                    } else if (userDoc.profileType.equals("VELİ", ignoreCase = true)) {
+                        if (userDoc.isProfileComplete && userDoc.children.isNotEmpty()) {
+                            resolvedUser = result.data.copy(
+                                role = UserRole.PARENT,
+                                teacherUid = userDoc.children.firstOrNull()?.teacherUid ?: userId
+                            )
+                        } else {
+                            resolvedUser = result.data.copy(
+                                role = UserRole.MEMBER,
+                                teacherUid = userId
+                            )
+                        }
+                    } else {
+                        resolvedUser = result.data.copy(
+                            role = UserRole.MEMBER,
+                            teacherUid = userId
+                        )
                     }
                 } else {
-                    android.util.Log.w("AuthViewModel", "No user doc found by email. Falling back to UID direct lookup/default checks...")
-                    // Fallback to direct check by auth userId
-                    val userDocByUid = firestoreRepository.getUserDocument(result.data.userId)
-                    
-                    val isTeacher = userDocByUid?.profileType?.let { checkIsTeacher(it) } ?: false
-                    
-                    android.util.Log.d("AuthViewModel", "UID direct lookup result: isTeacher: $isTeacher")
-
-                    if (isTeacher) {
-                        resolvedUser = result.data.copy(
-                            role = UserRole.TEACHER,
-                            teacherUid = result.data.userId
-                        )
-                    } else {
-                        // Check if parent
-                        val linkedStudents = firestoreRepository.getLinkedStudentsForParent(email)
-                        if (linkedStudents.isNotEmpty()) {
-                            android.util.Log.d("AuthViewModel", "User is a parent linked to teacher: ${linkedStudents.first().first}")
-                            resolvedUser = result.data.copy(
-                                role = UserRole.PARENT,
-                                teacherUid = linkedStudents.first().first
-                            )
-                        } else {
-                            android.util.Log.d("AuthViewModel", "User is default MEMBER (no linked students)")
-                            resolvedUser = result.data.copy(role = UserRole.MEMBER)
-                        }
-                    }
+                    resolvedUser = result.data.copy(
+                        role = UserRole.MEMBER,
+                        teacherUid = userId
+                    )
                 }
                 
                 android.util.Log.d("AuthViewModel", "Final resolved user session: role=${resolvedUser.role}, teacherUid=${resolvedUser.teacherUid}")
@@ -136,6 +128,64 @@ class AuthViewModel : ViewModel() {
                 signInError = result.errorMessage,
                 isLoading = false
             ) }
+        }
+    }
+
+    fun refreshUserSession(userId: String, email: String) {
+        _state.update { it.copy(isLoading = true) }
+        viewModelScope.launch {
+            val userDoc = firestoreRepository.getUserDocument(userId)
+            if (userDoc != null) {
+                val cleanEmailLower = email.trim().lowercase()
+                val isEmailAdmin = cleanEmailLower == "cihan.ozel10@gmail.com" || 
+                                   cleanEmailLower == "cihanogretmen10@gmail.com"
+                
+                fun checkIsTeacher(profileType: String): Boolean {
+                    val p = profileType.trim()
+                    return p.equals("ÖĞRETMEN", ignoreCase = true) || 
+                           p.equals("Öğretmen", ignoreCase = true) || 
+                           p.equals("OGRETMEN", ignoreCase = true) ||
+                           p.equals("TEACHER", ignoreCase = true) ||
+                           p.contains("Öğret", ignoreCase = true) ||
+                           p.contains("ogret", ignoreCase = true)
+                }
+
+                val currentData = _state.value.userData ?: UserData(userId, null, null, email)
+                val resolvedUser = when {
+                    isEmailAdmin -> {
+                        currentData.copy(role = UserRole.ADMIN, teacherUid = "cihan_ozel_web_uid")
+                    }
+                    checkIsTeacher(userDoc.profileType) -> {
+                        if (userDoc.isProfileComplete && userDoc.schoolName.isNotEmpty()) {
+                            currentData.copy(role = UserRole.TEACHER, teacherUid = userId)
+                        } else {
+                            currentData.copy(role = UserRole.MEMBER, teacherUid = userId)
+                        }
+                    }
+                    userDoc.profileType.equals("VELİ", ignoreCase = true) -> {
+                        if (userDoc.isProfileComplete && userDoc.children.isNotEmpty()) {
+                            currentData.copy(
+                                role = UserRole.PARENT,
+                                teacherUid = userDoc.children.firstOrNull()?.teacherUid ?: userId
+                            )
+                        } else {
+                            currentData.copy(role = UserRole.MEMBER, teacherUid = userId)
+                        }
+                    }
+                    else -> {
+                        currentData.copy(role = UserRole.MEMBER, teacherUid = userId)
+                    }
+                }
+                
+                android.util.Log.d("AuthViewModel", "Refreshed user session: role=${resolvedUser.role}, teacherUid=${resolvedUser.teacherUid}")
+                _state.update { it.copy(
+                    isLoading = false,
+                    isSignInSuccessful = true,
+                    userData = resolvedUser
+                ) }
+            } else {
+                _state.update { it.copy(isLoading = false) }
+            }
         }
     }
 

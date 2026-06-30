@@ -37,12 +37,26 @@ data class ReadingRecord(
     val bookName: String = ""
 )
 
+data class ChildInfo(
+    val studentId: String = "",
+    val studentNo: String = "",
+    val studentName: String = "",
+    val school: String = "",
+    val grade: String = "",
+    val section: String = "",
+    val teacherUid: String = ""
+)
+
 data class UserDocument(
     val email: String = "",
     val profileType: String = "",
     val city: String = "",
     val district: String = "",
-    val schoolName: String = ""
+    val schoolName: String = "",
+    val gradeLevel: String = "",
+    val section: String = "",
+    val isProfileComplete: Boolean = false,
+    val children: List<ChildInfo> = emptyList()
 )
 
 data class SeatingConfig(

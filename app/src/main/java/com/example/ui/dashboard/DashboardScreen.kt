@@ -31,6 +31,7 @@ import com.example.ui.dashboard.tabs.MemberDashboardTab
 fun DashboardScreen(
     userData: UserData,
     onSignOut: () -> Unit,
+    onRefreshSession: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     when (userData.role) {
@@ -63,7 +64,12 @@ fun DashboardScreen(
             Scaffold(
                 modifier = modifier
             ) { paddingValues ->
-                MemberDashboardTab(userData = userData, onSignOut = onSignOut, paddingValues = paddingValues)
+                MemberDashboardTab(
+                    userData = userData,
+                    onSignOut = onSignOut,
+                    onRefreshSession = onRefreshSession,
+                    paddingValues = paddingValues
+                )
             }
         }
         else -> {

@@ -22,18 +22,51 @@ class FirestoreRepository {
         "ai-studio-50d2114a-6844-4ea4-a54d-c3de2ef685ab"
     )
 
+    private fun mapDocumentToUserDocument(doc: com.google.firebase.firestore.DocumentSnapshot): UserDocument {
+        val email = doc.getString("email") ?: ""
+        val profileType = doc.getString("profileType") ?: doc.getString("profil_tipi") ?: doc.getString("profilTipi") ?: ""
+        val city = doc.getString("city") ?: doc.getString("il") ?: ""
+        val district = doc.getString("district") ?: doc.getString("ilce") ?: ""
+        val schoolName = doc.getString("schoolName") ?: doc.getString("okul_adi") ?: doc.getString("okulAdi") ?: ""
+        val gradeLevel = doc.getString("gradeLevel") ?: doc.getString("sinif") ?: doc.getString("sinif_seviyesi") ?: ""
+        val section = doc.getString("section") ?: doc.getString("sube") ?: ""
+        val isProfileComplete = doc.getBoolean("isProfileComplete") ?: doc.getBoolean("profilTamamlandi") ?: false
+        
+        val childrenRaw = doc.get("children") as? List<*>
+        val children = childrenRaw?.mapNotNull { item ->
+            val map = item as? Map<*, *> ?: return@mapNotNull null
+            ChildInfo(
+                studentId = map["studentId"]?.toString() ?: "",
+                studentNo = map["studentNo"]?.toString() ?: "",
+                studentName = map["studentName"]?.toString() ?: map["ad_soyad"]?.toString() ?: "",
+                school = map["school"]?.toString() ?: map["okul_adi"]?.toString() ?: "",
+                grade = map["grade"]?.toString() ?: map["sinif"]?.toString() ?: "",
+                section = map["section"]?.toString() ?: map["sube"]?.toString() ?: "",
+                teacherUid = map["teacherUid"]?.toString() ?: ""
+            )
+        } ?: emptyList()
+        
+        return UserDocument(
+            email = email,
+            profileType = profileType,
+            city = city,
+            district = district,
+            schoolName = schoolName,
+            gradeLevel = gradeLevel,
+            section = section,
+            isProfileComplete = isProfileComplete,
+            children = children
+        )
+    }
+
     suspend fun getUserDocument(userId: String): UserDocument? {
         return try {
             android.util.Log.d("FirestoreRepository", "getUserDocument for UID: $userId")
             val doc = db.collection("users").document(userId).get().awaitWithTimeout()
             if (doc != null && doc.exists()) {
-                val email = doc.getString("email") ?: ""
-                val profileType = doc.getString("profileType") ?: doc.getString("profil_tipi") ?: doc.getString("profilTipi") ?: ""
-                val city = doc.getString("city") ?: doc.getString("il") ?: ""
-                val district = doc.getString("district") ?: doc.getString("ilce") ?: ""
-                val schoolName = doc.getString("schoolName") ?: doc.getString("okul_adi") ?: doc.getString("okulAdi") ?: ""
-                android.util.Log.d("FirestoreRepository", "Found Direct Doc! email: $email, profileType: $profileType")
-                UserDocument(email, profileType, city, district, schoolName)
+                val userDoc = mapDocumentToUserDocument(doc)
+                android.util.Log.d("FirestoreRepository", "Found Direct Doc! email: ${userDoc.email}, profileType: ${userDoc.profileType}")
+                userDoc
             } else {
                 android.util.Log.w("FirestoreRepository", "Direct Doc does not exist or timed out for UID: $userId")
                 null
@@ -64,13 +97,9 @@ class FirestoreRepository {
             
             val doc = snapshot?.documents?.firstOrNull()
             if (doc != null && doc.exists()) {
-                val emailStr = doc.getString("email") ?: ""
-                val profileType = doc.getString("profileType") ?: doc.getString("profil_tipi") ?: doc.getString("profilTipi") ?: ""
-                val city = doc.getString("city") ?: doc.getString("il") ?: ""
-                val district = doc.getString("district") ?: doc.getString("ilce") ?: ""
-                val schoolName = doc.getString("schoolName") ?: doc.getString("okul_adi") ?: doc.getString("okulAdi") ?: ""
-                android.util.Log.d("FirestoreRepository", "Found User by Email query! DocID: ${doc.id}, email: $emailStr, profileType: $profileType")
-                Pair(doc.id, UserDocument(emailStr, profileType, city, district, schoolName))
+                val userDoc = mapDocumentToUserDocument(doc)
+                android.util.Log.d("FirestoreRepository", "Found User by Email query! DocID: ${doc.id}, email: ${userDoc.email}, profileType: ${userDoc.profileType}")
+                Pair(doc.id, userDoc)
             } else {
                 android.util.Log.w("FirestoreRepository", "No user document found or timed out with email constraint: $cleanEmail")
                 null
@@ -79,6 +108,131 @@ class FirestoreRepository {
             e.printStackTrace()
             null
         }
+    }
+
+    suspend fun createDefaultUserProfile(userId: String, email: String, username: String?, profilePictureUrl: String?) {
+        try {
+            val userRef = db.collection("users").document(userId)
+            val doc = userRef.get().awaitWithTimeout()
+            if (doc == null || !doc.exists()) {
+                val payload = hashMapOf(
+                    "email" to email,
+                    "profileType" to "ÜYE",
+                    "isProfileComplete" to false,
+                    "displayName" to (username ?: ""),
+                    "photoURL" to (profilePictureUrl ?: ""),
+                    "createdAt" to com.google.firebase.Timestamp.now()
+                )
+                userRef.set(payload).awaitWithTimeout()
+                android.util.Log.d("FirestoreRepository", "Created default user document for $userId")
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    suspend fun saveTeacherProfile(
+        userId: String,
+        city: String,
+        district: String,
+        schoolName: String,
+        gradeLevel: String,
+        section: String
+    ): Boolean {
+        return try {
+            val userRef = db.collection("users").document(userId)
+            val payload = hashMapOf<String, Any>(
+                "profileType" to "ÖĞRETMEN",
+                "city" to city,
+                "district" to district,
+                "schoolName" to schoolName,
+                "gradeLevel" to gradeLevel,
+                "section" to section,
+                "isProfileComplete" to true,
+                "updatedAt" to com.google.firebase.Timestamp.now()
+            )
+            userRef.update(payload).awaitWithTimeout()
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    suspend fun saveParentProfile(
+        userId: String,
+        children: List<ChildInfo>
+    ): Boolean {
+        return try {
+            val userRef = db.collection("users").document(userId)
+            val childrenMapList = children.map { child ->
+                hashMapOf(
+                    "studentId" to child.studentId,
+                    "studentNo" to child.studentNo,
+                    "studentName" to child.studentName,
+                    "school" to child.school,
+                    "grade" to child.grade,
+                    "section" to child.section,
+                    "teacherUid" to child.teacherUid
+                )
+            }
+            val payload = hashMapOf<String, Any>(
+                "profileType" to "VELİ",
+                "children" to childrenMapList,
+                "isProfileComplete" to true,
+                "updatedAt" to com.google.firebase.Timestamp.now()
+            )
+            userRef.update(payload).awaitWithTimeout()
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    suspend fun autoUpgradeParentIfNeeded(userId: String, email: String): UserDocument? {
+        if (email.isEmpty()) return null
+        try {
+            val linked = getLinkedStudentsForParent(email)
+            if (linked.isNotEmpty()) {
+                android.util.Log.d("FirestoreRepository", "Auto-upgrade match! Found ${linked.size} linked students for parent: $email")
+                val children = linked.map { (teacherUid, student) ->
+                    // Fetch teacher's schoolName, gradeLevel, and section to make it rich if possible
+                    var schoolName = ""
+                    var gradeLevel = ""
+                    var section = ""
+                    try {
+                        val teacherDoc = db.collection("users").document(teacherUid).get().awaitWithTimeout()
+                        if (teacherDoc != null && teacherDoc.exists()) {
+                            schoolName = teacherDoc.getString("schoolName") ?: teacherDoc.getString("okul_adi") ?: ""
+                            gradeLevel = teacherDoc.getString("gradeLevel") ?: teacherDoc.getString("sinif") ?: ""
+                            section = teacherDoc.getString("section") ?: teacherDoc.getString("sube") ?: ""
+                        }
+                    } catch (te: Exception) {
+                        te.printStackTrace()
+                    }
+                    ChildInfo(
+                        studentId = student.id,
+                        studentNo = student.studentNo,
+                        studentName = "${student.name} ${student.surname}".trim(),
+                        school = schoolName,
+                        grade = gradeLevel,
+                        section = section,
+                        teacherUid = teacherUid
+                    )
+                }
+                
+                // Perform upgrade in Firestore
+                val success = saveParentProfile(userId, children)
+                if (success) {
+                    android.util.Log.d("FirestoreRepository", "Parent $userId upgraded successfully!")
+                    return getUserDocument(userId)
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return null
     }
 
     // role checking logic based on parentEmail and parentEmail2

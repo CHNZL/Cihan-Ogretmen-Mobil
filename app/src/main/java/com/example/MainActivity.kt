@@ -95,6 +95,9 @@ class MainActivity : ComponentActivity() {
                    viewModel.resetState()
                  }
                },
+               onRefreshSession = {
+                 viewModel.refreshUserSession(state.userData!!.userId, state.userData!!.email ?: "")
+               },
                modifier = Modifier.padding(innerPadding)
              )
           } else {
