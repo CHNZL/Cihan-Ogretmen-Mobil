@@ -125,6 +125,7 @@ fun ScheduleTab(
 
     // Load Data using Snapshots
     val authUid = currentUserUid
+    val writeUid = if (authUid != null && authUid != teacherUid) authUid else teacherUid
     DisposableEffect(teacherUid, authUid) {
         val configRef = db.collection("users").document(teacherUid).collection("config").document("schedule")
         val configListener = configRef.addSnapshotListener { snapshot, error ->
@@ -245,20 +246,22 @@ fun ScheduleTab(
         val subjectsListener = subjectsRef.addSnapshotListener { snapshot, error ->
             if (snapshot != null) {
                 if (snapshot.isEmpty) {
-                    // Populate default subjects in a non-blocking background thread
-                    val batch = db.batch()
-                    for (sub in defaultSubjects) {
-                        val newRef = db.collection("users").document(teacherUid).collection("subjects").document()
-                        batch.set(newRef, mapOf(
-                            "name" to sub.name,
-                            "color" to sub.color,
-                            "teacherUid" to teacherUid,
-                            "createdAt" to FieldValue.serverTimestamp(),
-                            "updatedAt" to FieldValue.serverTimestamp()
-                        ))
-                    }
-                    batch.commit().addOnFailureListener {
-                        android.util.Log.e("ScheduleTab", "Failed to populate default subjects", it)
+                    if (authUid == teacherUid) {
+                        // Populate default subjects in a non-blocking background thread
+                        val batch = db.batch()
+                        for (sub in defaultSubjects) {
+                            val newRef = db.collection("users").document(teacherUid).collection("subjects").document()
+                            batch.set(newRef, mapOf(
+                                "name" to sub.name,
+                                "color" to sub.color,
+                                "teacherUid" to teacherUid,
+                                "createdAt" to FieldValue.serverTimestamp(),
+                                "updatedAt" to FieldValue.serverTimestamp()
+                            ))
+                        }
+                        batch.commit().addOnFailureListener {
+                            android.util.Log.e("ScheduleTab", "Failed to populate default subjects", it)
+                        }
                     }
                 } else {
                     val subList = snapshot.documents.mapNotNull { doc ->
@@ -281,6 +284,24 @@ fun ScheduleTab(
                         Subject(doc.id, name, color, authUid)
                     }
                     localSubjects = subList
+                    
+                    if (snapshot.isEmpty) {
+                        // Populate default subjects for current user
+                        val batch = db.batch()
+                        for (sub in defaultSubjects) {
+                            val newRef = db.collection("users").document(authUid).collection("subjects").document()
+                            batch.set(newRef, mapOf(
+                                "name" to sub.name,
+                                "color" to sub.color,
+                                "teacherUid" to authUid,
+                                "createdAt" to FieldValue.serverTimestamp(),
+                                "updatedAt" to FieldValue.serverTimestamp()
+                            ))
+                        }
+                        batch.commit().addOnFailureListener {
+                            android.util.Log.e("ScheduleTab", "Failed to populate default subjects", it)
+                        }
+                    }
                 }
             }
         } else null
@@ -363,7 +384,7 @@ fun ScheduleTab(
                             OutlinedButton(
                                 onClick = {
                                     // Reset local schedule custom slots
-                                    db.collection("users").document(teacherUid)
+                                    db.collection("users").document(writeUid)
                                         .collection("config").document("scheduleData")
                                         .set(mapOf(
                                             "slots" to emptyMap<String, String>(),
@@ -671,37 +692,24 @@ fun ScheduleTab(
                                     entry.value.toIntOrNull() ?: intRecessDuration
                                 }
 
-                                val payload = mapOf(
-                                    // English fields (legacy)
-                                    "days" to formDays,
-                                    "lessonCount" to intLessonCount,
-                                    "startTime" to formStartTime,
-                                    "lessonDuration" to intLessonDuration,
-                                    "recessDuration" to intRecessDuration,
-                                    "lunchBreakDuration" to intLunchDuration,
-                                    "lunchBreakAfterLesson" to intLunchAfter,
-                                    "customRecessDurations" to customRecessedParsed,
-                                    // Turkish fields (camelCase for web sync)
-                                    "gunler" to formDays,
-                                    "dersSayisi" to intLessonCount,
-                                    "baslangicSaati" to formStartTime,
-                                    "dersSuresi" to intLessonDuration,
-                                    "teneffusSuresi" to intRecessDuration,
-                                    "ogleArasiSuresi" to intLunchDuration,
-                                    "ogleArasiKacinciDersten" to intLunchAfter,
-                                    "ozelTeneffusSureleri" to customRecessedParsed
+                                val configToSave = ScheduleConfig(
+                                    days = formDays,
+                                    lessonCount = intLessonCount,
+                                    startTime = formStartTime,
+                                    lessonDuration = intLessonDuration,
+                                    recessDuration = intRecessDuration,
+                                    lunchBreakDuration = intLunchDuration,
+                                    lunchBreakAfterLesson = intLunchAfter,
+                                    customRecessDurations = customRecessedParsed
                                 )
-
-                                val cleanCustomRecess = customRecessedParsed.toMap()
-                                val currentAuthUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
-                                val writeUid = if (currentAuthUid != null && currentAuthUid != teacherUid) currentAuthUid else teacherUid
+                                
                                 db.collection("users").document(writeUid)
                                     .collection("config").document("schedule")
-                                    .set(payload)
+                                    .set(configToSave)
                                     .addOnSuccessListener {
                                         Toast.makeText(context, "Ayarlar Kaydedildi", Toast.LENGTH_SHORT).show()
                                         isSettingsOpen = false
-                                        if (writeUid == currentAuthUid) {
+                                        if (writeUid == authUid) {
                                             localScheduleConfig = ScheduleConfig(
                                                 days = formDays,
                                                 lessonCount = intLessonCount,
@@ -710,7 +718,7 @@ fun ScheduleTab(
                                                 recessDuration = intRecessDuration,
                                                 lunchBreakDuration = intLunchDuration,
                                                 lunchBreakAfterLesson = intLunchAfter,
-                                                customRecessDurations = cleanCustomRecess
+                                                customRecessDurations = customRecessedParsed
                                             )
                                         }
                                     }
@@ -779,8 +787,6 @@ fun ScheduleTab(
                                         val updatedSlots = scheduleData.slots.toMutableMap().apply {
                                             put(slotKey, sub.id)
                                         }
-                                        val currentAuthUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
-                                        val writeUid = if (currentAuthUid != null && currentAuthUid != teacherUid) currentAuthUid else teacherUid
                                         db.collection("users").document(writeUid)
                                             .collection("config").document("scheduleData")
                                             .set(mapOf(
@@ -789,7 +795,7 @@ fun ScheduleTab(
                                             ))
                                             .addOnSuccessListener {
                                                 isSubjectSelectOpen = false
-                                                if (writeUid == currentAuthUid) {
+                                                if (writeUid == authUid) {
                                                     localScheduleData = ScheduleData(updatedSlots)
                                                 }
                                             }
@@ -811,8 +817,6 @@ fun ScheduleTab(
                                         val updatedSlots = scheduleData.slots.toMutableMap().apply {
                                             remove(slotKey)
                                         }
-                                        val currentAuthUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
-                                        val writeUid = if (currentAuthUid != null && currentAuthUid != teacherUid) currentAuthUid else teacherUid
                                         db.collection("users").document(writeUid)
                                             .collection("config").document("scheduleData")
                                             .set(mapOf(
@@ -821,7 +825,7 @@ fun ScheduleTab(
                                             ))
                                             .addOnSuccessListener {
                                                 isSubjectSelectOpen = false
-                                                if (writeUid == currentAuthUid) {
+                                                if (writeUid == authUid) {
                                                     localScheduleData = ScheduleData(updatedSlots)
                                                 }
                                             }
@@ -944,8 +948,6 @@ fun ScheduleTab(
                             OutlinedButton(
                                 onClick = {
                                     editingSubject?.let { sub ->
-                                        val currentAuthUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
-                                        val writeUid = if (currentAuthUid != null && currentAuthUid != teacherUid) currentAuthUid else teacherUid
                                         db.collection("users").document(writeUid)
                                             .collection("subjects").document(sub.id)
                                             .delete()
@@ -978,8 +980,6 @@ fun ScheduleTab(
                                     Toast.makeText(context, "Ders adı boş olamaz", Toast.LENGTH_SHORT).show()
                                     return@Button
                                 }
-                                val currentAuthUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
-                                val writeUid = if (currentAuthUid != null && currentAuthUid != teacherUid) currentAuthUid else teacherUid
                                 val model = mapOf(
                                     "name" to subjectNameInput.trim(),
                                     "color" to subjectColorInput,
