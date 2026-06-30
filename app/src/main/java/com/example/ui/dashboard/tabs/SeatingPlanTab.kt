@@ -69,6 +69,16 @@ fun SeatingPlanTab(userData: UserData) {
     )
     val teacherUid = userData.teacherUid.takeIf { it.isNotBlank() } ?: userData.userId
 
+    var currentUserUid by remember { mutableStateOf(com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid) }
+    
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        com.google.firebase.auth.FirebaseAuth.getInstance().addAuthStateListener { auth ->
+            currentUserUid = auth.currentUser?.uid
+        }
+    }
+    val authUid = currentUserUid
+    val writeUid: String = if (authUid != null && authUid != teacherUid) authUid else teacherUid
+
     var students by remember { mutableStateOf<List<Student>>(emptyList()) }
     var seatingConfig by remember { mutableStateOf(SeatingConfig()) }
     var seatingPlan by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
@@ -254,10 +264,10 @@ fun SeatingPlanTab(userData: UserData) {
                     Button(
                         onClick = {
                             isLoading = true
-                            db.collection("users").document(teacherUid).collection("config").document("seating")
+                            db.collection("users").document(writeUid).collection("config").document("seating")
                                 .set(seatingConfig)
                                 .addOnSuccessListener {
-                                    db.collection("users").document(teacherUid).collection("config").document("seatingPlan")
+                                    db.collection("users").document(writeUid).collection("config").document("seatingPlan")
                                         .set(SeatingPlanData(plan = seatingPlan))
                                         .addOnSuccessListener {
                                             isUnsavedPlan = false

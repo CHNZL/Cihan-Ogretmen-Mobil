@@ -50,6 +50,16 @@ import androidx.compose.ui.graphics.nativeCanvas
 @Composable
 fun LuckyStudentTab(userData: UserData) {
     val teacherUid = userData.teacherUid.takeIf { it.isNotBlank() } ?: userData.userId
+    var currentUserUid by remember { mutableStateOf(com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid) }
+    
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        com.google.firebase.auth.FirebaseAuth.getInstance().addAuthStateListener { auth ->
+            currentUserUid = auth.currentUser?.uid
+        }
+    }
+    val authUid = currentUserUid
+    val writeUid: String = if (authUid != null && authUid != teacherUid) authUid else teacherUid
+
     var students by remember { mutableStateOf<List<Student>>(emptyList()) }
     var teacherCity by remember { mutableStateOf("Sivas") }
     var isLoading by remember { mutableStateOf(true) }
@@ -71,11 +81,11 @@ fun LuckyStudentTab(userData: UserData) {
             "selectedStudentIds" to ids,
             "updatedAt" to SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault()).format(Date())
         )
-        db.collection("users").document(teacherUid).collection("config").document("luckyStudent")
+        db.collection("users").document(writeUid).collection("config").document("luckyStudent")
             .set(data, com.google.firebase.firestore.SetOptions.merge())
     }
     
-    DisposableEffect(Unit) {
+    DisposableEffect(teacherUid, authUid) {
         // Initialize Sound and Speech Engine for the Lucky Student Games!
         SoundHelper.init(context)
         
@@ -93,7 +103,7 @@ fun LuckyStudentTab(userData: UserData) {
             students = allStudents
             
             var isFirstLoad = true
-            listener = db.collection("users").document(teacherUid).collection("config").document("luckyStudent")
+            listener = db.collection("users").document(writeUid).collection("config").document("luckyStudent")
                 .addSnapshotListener { snapshot, e ->
                     if (e != null) {
                         isLoading = false

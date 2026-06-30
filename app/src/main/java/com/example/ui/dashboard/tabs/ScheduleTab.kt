@@ -59,7 +59,13 @@ fun ScheduleTab(
     }
 
     // State bindings
-    val currentUserUid = remember { com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid }
+    var currentUserUid by remember { mutableStateOf(com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid) }
+    
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        com.google.firebase.auth.FirebaseAuth.getInstance().addAuthStateListener { auth ->
+            currentUserUid = auth.currentUser?.uid
+        }
+    }
     
     var teacherScheduleConfig by remember { mutableStateOf<ScheduleConfig?>(null) }
     var localScheduleConfig by remember { mutableStateOf<ScheduleConfig?>(null) }
@@ -118,7 +124,8 @@ fun ScheduleTab(
     }
 
     // Load Data using Snapshots
-    DisposableEffect(teacherUid) {
+    val authUid = currentUserUid
+    DisposableEffect(teacherUid, authUid) {
         val configRef = db.collection("users").document(teacherUid).collection("config").document("schedule")
         val configListener = configRef.addSnapshotListener { snapshot, error ->
             isLoading = false
@@ -156,8 +163,8 @@ fun ScheduleTab(
             }
         }
 
-        val overrideConfigListener = if (currentUserUid != null && currentUserUid != teacherUid) {
-            val overrideRef = db.collection("users").document(currentUserUid).collection("config").document("schedule")
+        val overrideConfigListener = if (authUid != null && authUid != teacherUid) {
+            val overrideRef = db.collection("users").document(authUid).collection("config").document("schedule")
             overrideRef.addSnapshotListener { snapshot, error ->
                 if (snapshot != null && snapshot.exists()) {
                     try {
@@ -213,8 +220,8 @@ fun ScheduleTab(
             }
         }
 
-        val overrideDataListener = if (currentUserUid != null && currentUserUid != teacherUid) {
-            val overrideRef = db.collection("users").document(currentUserUid).collection("config").document("scheduleData")
+        val overrideDataListener = if (authUid != null && authUid != teacherUid) {
+            val overrideRef = db.collection("users").document(authUid).collection("config").document("scheduleData")
             overrideRef.addSnapshotListener { snapshot, error ->
                 if (snapshot != null && snapshot.exists()) {
                     val slotsRaw = snapshot.get("slots") as? Map<*, *>
@@ -264,14 +271,14 @@ fun ScheduleTab(
             }
         }
 
-        val overrideSubjectsListener = if (currentUserUid != null && currentUserUid != teacherUid) {
-            val overrideRef = db.collection("users").document(currentUserUid).collection("subjects")
+        val overrideSubjectsListener = if (authUid != null && authUid != teacherUid) {
+            val overrideRef = db.collection("users").document(authUid).collection("subjects")
             overrideRef.addSnapshotListener { snapshot, error ->
                 if (snapshot != null) {
                     val subList = snapshot.documents.mapNotNull { doc ->
                         val name = doc.getString("name") ?: ""
                         val color = doc.getString("color") ?: "#3b82f6"
-                        Subject(doc.id, name, color, currentUserUid)
+                        Subject(doc.id, name, color, authUid)
                     }
                     localSubjects = subList
                 }
@@ -686,14 +693,15 @@ fun ScheduleTab(
                                 )
 
                                 val cleanCustomRecess = customRecessedParsed.toMap()
-                                val writeUid = if (currentUserUid != null && currentUserUid != teacherUid) currentUserUid else teacherUid
+                                val currentAuthUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+                                val writeUid = if (currentAuthUid != null && currentAuthUid != teacherUid) currentAuthUid else teacherUid
                                 db.collection("users").document(writeUid)
                                     .collection("config").document("schedule")
                                     .set(payload)
                                     .addOnSuccessListener {
                                         Toast.makeText(context, "Ayarlar Kaydedildi", Toast.LENGTH_SHORT).show()
                                         isSettingsOpen = false
-                                        if (writeUid == currentUserUid) {
+                                        if (writeUid == currentAuthUid) {
                                             localScheduleConfig = ScheduleConfig(
                                                 days = formDays,
                                                 lessonCount = intLessonCount,
@@ -707,7 +715,7 @@ fun ScheduleTab(
                                         }
                                     }
                                     .addOnFailureListener {
-                                        Toast.makeText(context, "Hata: ${it.message}", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, "Hata: ${it.message} (write: $writeUid, auth: ${com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid})", Toast.LENGTH_LONG).show()
                                     }
                             },
                             modifier = Modifier.weight(1f),
@@ -771,7 +779,8 @@ fun ScheduleTab(
                                         val updatedSlots = scheduleData.slots.toMutableMap().apply {
                                             put(slotKey, sub.id)
                                         }
-                                        val writeUid = if (currentUserUid != null && currentUserUid != teacherUid) currentUserUid else teacherUid
+                                        val currentAuthUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+                                        val writeUid = if (currentAuthUid != null && currentAuthUid != teacherUid) currentAuthUid else teacherUid
                                         db.collection("users").document(writeUid)
                                             .collection("config").document("scheduleData")
                                             .set(mapOf(
@@ -780,7 +789,7 @@ fun ScheduleTab(
                                             ))
                                             .addOnSuccessListener {
                                                 isSubjectSelectOpen = false
-                                                if (writeUid == currentUserUid) {
+                                                if (writeUid == currentAuthUid) {
                                                     localScheduleData = ScheduleData(updatedSlots)
                                                 }
                                             }
@@ -802,7 +811,8 @@ fun ScheduleTab(
                                         val updatedSlots = scheduleData.slots.toMutableMap().apply {
                                             remove(slotKey)
                                         }
-                                        val writeUid = if (currentUserUid != null && currentUserUid != teacherUid) currentUserUid else teacherUid
+                                        val currentAuthUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+                                        val writeUid = if (currentAuthUid != null && currentAuthUid != teacherUid) currentAuthUid else teacherUid
                                         db.collection("users").document(writeUid)
                                             .collection("config").document("scheduleData")
                                             .set(mapOf(
@@ -811,7 +821,7 @@ fun ScheduleTab(
                                             ))
                                             .addOnSuccessListener {
                                                 isSubjectSelectOpen = false
-                                                if (writeUid == currentUserUid) {
+                                                if (writeUid == currentAuthUid) {
                                                     localScheduleData = ScheduleData(updatedSlots)
                                                 }
                                             }
@@ -934,7 +944,8 @@ fun ScheduleTab(
                             OutlinedButton(
                                 onClick = {
                                     editingSubject?.let { sub ->
-                                        val writeUid = if (currentUserUid != null && currentUserUid != teacherUid) currentUserUid else teacherUid
+                                        val currentAuthUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+                                        val writeUid = if (currentAuthUid != null && currentAuthUid != teacherUid) currentAuthUid else teacherUid
                                         db.collection("users").document(writeUid)
                                             .collection("subjects").document(sub.id)
                                             .delete()
@@ -967,7 +978,8 @@ fun ScheduleTab(
                                     Toast.makeText(context, "Ders adı boş olamaz", Toast.LENGTH_SHORT).show()
                                     return@Button
                                 }
-                                val writeUid = if (currentUserUid != null && currentUserUid != teacherUid) currentUserUid else teacherUid
+                                val currentAuthUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+                                val writeUid = if (currentAuthUid != null && currentAuthUid != teacherUid) currentAuthUid else teacherUid
                                 val model = mapOf(
                                     "name" to subjectNameInput.trim(),
                                     "color" to subjectColorInput,

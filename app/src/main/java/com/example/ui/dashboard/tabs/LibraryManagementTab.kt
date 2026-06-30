@@ -82,8 +82,15 @@ fun LibraryManagementTab(
     val teacherUid = userData.teacherUid.takeIf { it.isNotBlank() } ?: userData.userId
     val scope = rememberCoroutineScope()
     
-    val currentUserUid = remember { com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid }
-    val writeUid = if (currentUserUid != null && currentUserUid != teacherUid) currentUserUid else teacherUid
+    var currentUserUid by remember { mutableStateOf(com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid) }
+    
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        com.google.firebase.auth.FirebaseAuth.getInstance().addAuthStateListener { auth ->
+            currentUserUid = auth.currentUser?.uid
+        }
+    }
+    val authUid = currentUserUid
+    val writeUid: String = if (authUid != null && authUid != teacherUid) authUid else teacherUid
     
     var teacherBooks by remember { mutableStateOf<List<LibraryBook>>(emptyList()) }
     var localBooks by remember { mutableStateOf<List<LibraryBook>>(emptyList()) }
@@ -106,7 +113,7 @@ fun LibraryManagementTab(
     
     val dateFormatter = remember { SimpleDateFormat("dd.MM.yyyy", Locale("tr", "TR")) }
 
-    DisposableEffect(teacherUid) {
+    DisposableEffect(teacherUid, authUid) {
         val booksListener = db.collection("users").document(teacherUid).collection("books")
             .addSnapshotListener { snapshot, _ ->
                 if (snapshot != null) {
@@ -116,8 +123,8 @@ fun LibraryManagementTab(
                 }
             }
             
-        val localBooksListener = if (currentUserUid != null && currentUserUid != teacherUid) {
-            db.collection("users").document(currentUserUid).collection("books")
+        val localBooksListener = if (authUid != null && authUid != teacherUid) {
+            db.collection("users").document(authUid).collection("books")
                 .addSnapshotListener { snapshot, _ ->
                     if (snapshot != null) {
                         localBooks = snapshot.documents.mapNotNull { doc ->
@@ -136,8 +143,8 @@ fun LibraryManagementTab(
                 }
             }
             
-        val localStudentsListener = if (currentUserUid != null && currentUserUid != teacherUid) {
-            db.collection("users").document(currentUserUid).collection("students")
+        val localStudentsListener = if (authUid != null && authUid != teacherUid) {
+            db.collection("users").document(authUid).collection("students")
                 .addSnapshotListener { snapshot, _ ->
                     if (snapshot != null) {
                         localStudents = snapshot.documents.mapNotNull { doc ->
@@ -156,8 +163,8 @@ fun LibraryManagementTab(
                 }
             }
             
-        val localRecordsListener = if (currentUserUid != null && currentUserUid != teacherUid) {
-            db.collection("users").document(currentUserUid).collection("readingRecords")
+        val localRecordsListener = if (authUid != null && authUid != teacherUid) {
+            db.collection("users").document(authUid).collection("readingRecords")
                 .addSnapshotListener { snapshot, _ ->
                     if (snapshot != null) {
                         localRecords = snapshot.documents.mapNotNull { doc ->
@@ -177,8 +184,8 @@ fun LibraryManagementTab(
                 }
             }
             
-        val localEvaluationsListener = if (currentUserUid != null && currentUserUid != teacherUid) {
-            db.collection("users").document(currentUserUid).collection("readingEvaluations")
+        val localEvaluationsListener = if (authUid != null && authUid != teacherUid) {
+            db.collection("users").document(authUid).collection("readingEvaluations")
                 .addSnapshotListener { snapshot, _ ->
                     if (snapshot != null) {
                         localEvaluations = snapshot.documents.mapNotNull { doc ->
