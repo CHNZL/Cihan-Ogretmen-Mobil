@@ -692,20 +692,31 @@ fun ScheduleTab(
                                     entry.value.toIntOrNull() ?: intRecessDuration
                                 }
 
-                                val configToSave = ScheduleConfig(
-                                    days = formDays,
-                                    lessonCount = intLessonCount,
-                                    startTime = formStartTime,
-                                    lessonDuration = intLessonDuration,
-                                    recessDuration = intRecessDuration,
-                                    lunchBreakDuration = intLunchDuration,
-                                    lunchBreakAfterLesson = intLunchAfter,
-                                    customRecessDurations = customRecessedParsed
+                                val payload = mapOf(
+                                    // English fields (legacy)
+                                    "days" to formDays,
+                                    "lessonCount" to intLessonCount,
+                                    "startTime" to formStartTime,
+                                    "lessonDuration" to intLessonDuration,
+                                    "recessDuration" to intRecessDuration,
+                                    "lunchBreakDuration" to intLunchDuration,
+                                    "lunchBreakAfterLesson" to intLunchAfter,
+                                    "customRecessDurations" to customRecessedParsed,
+                                    // Turkish fields (camelCase for web sync)
+                                    "gunler" to formDays,
+                                    "dersSayisi" to intLessonCount,
+                                    "baslangicSaati" to formStartTime,
+                                    "dersSuresi" to intLessonDuration,
+                                    "teneffusSuresi" to intRecessDuration,
+                                    "ogleArasiSuresi" to intLunchDuration,
+                                    "ogleArasiKacinciDersten" to intLunchAfter,
+                                    "ozelTeneffusSureleri" to customRecessedParsed,
+                                    "updatedAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
                                 )
                                 
                                 db.collection("users").document(writeUid)
                                     .collection("config").document("schedule")
-                                    .set(configToSave)
+                                    .set(payload)
                                     .addOnSuccessListener {
                                         Toast.makeText(context, "Ayarlar Kaydedildi", Toast.LENGTH_SHORT).show()
                                         isSettingsOpen = false

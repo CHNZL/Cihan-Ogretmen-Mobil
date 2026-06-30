@@ -90,7 +90,6 @@ fun LibraryManagementTab(
         }
     }
     val authUid = currentUserUid
-    val writeUid: String = if (authUid != null && authUid != teacherUid) authUid else teacherUid
     
     var teacherBooks by remember { mutableStateOf<List<LibraryBook>>(emptyList()) }
     var localBooks by remember { mutableStateOf<List<LibraryBook>>(emptyList()) }
@@ -210,7 +209,7 @@ fun LibraryManagementTab(
     
     if (showAddDialog) {
         AddBookDialog(
-            userId = writeUid,
+            userId = teacherUid,
             books = books,
             students = students,
             readingRecords = readingRecords,
@@ -218,7 +217,7 @@ fun LibraryManagementTab(
             onAdd = { newBook, assignedStudent ->
                 scope.launch {
                     try {
-                        val bookRef = db.collection("users").document(writeUid).collection("books").add(newBook).await()
+                        val bookRef = db.collection("users").document(teacherUid).collection("books").add(newBook).await()
                         
                         if (assignedStudent != null) {
                             val updates = hashMapOf<String, Any>(
@@ -235,12 +234,12 @@ fun LibraryManagementTab(
                                 "studentId" to assignedStudent.id,
                                 "studentNo" to assignedStudent.studentNo,
                                 "studentName" to assignedStudent.name,
-                                "teacherUid" to writeUid,
+                                "teacherUid" to teacherUid,
                                 "assignedAt" to FieldValue.serverTimestamp(),
                                 "returnedAt" to null,
                                 "status" to "active"
                             )
-                            db.collection("users").document(writeUid).collection("readingRecords").add(record).await()
+                            db.collection("users").document(teacherUid).collection("readingRecords").add(record).await()
                         }
                         showAddDialog = false
                     } catch (e: Exception) {
@@ -273,11 +272,11 @@ fun LibraryManagementTab(
                                 books = books, 
                                 students = students, 
                                 readingRecords = readingRecords,
-                                teacherUid = writeUid, 
+                                teacherUid = teacherUid, 
                                 db = db,
                                 onEditClicked = { /* TODO implement edit */ },
                                 onDeleteClicked = { bookId ->
-                                    scope.launch { db.collection("users").document(writeUid).collection("books").document(bookId).delete().await() }
+                                    scope.launch { db.collection("users").document(teacherUid).collection("books").document(bookId).delete().await() }
                                 },
                                 onMarkAsReadByAll = { book ->
                                     scope.launch {
@@ -288,16 +287,16 @@ fun LibraryManagementTab(
                                             "status" to "Rafta",
                                             "assignmentDate" to FieldValue.delete()
                                         )
-                                        db.collection("users").document(writeUid).collection("books").document(book.id).update(updates).await()
+                                        db.collection("users").document(teacherUid).collection("books").document(book.id).update(updates).await()
                                         
                                         // End any active reading records for this book
-                                        val recordsQuery = db.collection("users").document(writeUid).collection("readingRecords")
+                                        val recordsQuery = db.collection("users").document(teacherUid).collection("readingRecords")
                                             .whereEqualTo("bookId", book.id)
                                             .get().await()
                                             
                                         for (doc in recordsQuery.documents) {
                                             if (!doc.contains("endDate") || doc.get("endDate") == null) {
-                                                db.collection("users").document(writeUid).collection("readingRecords")
+                                                db.collection("users").document(teacherUid).collection("readingRecords")
                                                     .document(doc.id).update("endDate", FieldValue.serverTimestamp()).await()
                                             }
                                         }
@@ -316,12 +315,12 @@ fun LibraryManagementTab(
                                                     "bookName" to book.name,
                                                     "studentId" to student.id,
                                                     "studentName" to "${student.name} ${student.surname}",
-                                                    "teacherUid" to writeUid,
+                                                    "teacherUid" to teacherUid,
                                                     "startDate" to FieldValue.serverTimestamp(),
                                                     "endDate" to FieldValue.serverTimestamp(), // Instantly finished since they all read it
                                                     "createdAt" to FieldValue.serverTimestamp()
                                                 )
-                                                db.collection("users").document(writeUid).collection("readingRecords").add(record).await()
+                                                db.collection("users").document(teacherUid).collection("readingRecords").add(record).await()
                                                 
                                                 // Star logic
                                                 if (starsToAward > 0) {
@@ -331,7 +330,7 @@ fun LibraryManagementTab(
                                                         "amount" to starsToAward,
                                                         "timestamp" to System.currentTimeMillis()
                                                     )
-                                                    db.collection("users").document(writeUid).collection("students").document(student.id)
+                                                    db.collection("users").document(teacherUid).collection("students").document(student.id)
                                                         .update(
                                                             "stars", FieldValue.increment(starsToAward.toLong()),
                                                             "starHistory", FieldValue.arrayUnion(newHistoryItem)
@@ -346,14 +345,14 @@ fun LibraryManagementTab(
                                 records = readingRecords, 
                                 students = students, 
                                 dateFormatter = dateFormatter,
-                                teacherUid = writeUid,
+                                teacherUid = teacherUid,
                                 db = db
                              )
                         2 -> ReadingEvaluationScreen(
                                 books = books,
                                 students = students,
                                 evaluations = readingEvaluations,
-                                teacherUid = writeUid,
+                                teacherUid = teacherUid,
                                 db = db
                              )
                     }
